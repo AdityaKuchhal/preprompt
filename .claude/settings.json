@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "promptforge": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "${workspaceFolder}/promptforge",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/promptforge"
+      }
+    }
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ${workspaceFolder}/promptforge/.claude/hooks/pre_prompt.py"
+          }
+        ]
+      }
+    ]
+  }
+}
