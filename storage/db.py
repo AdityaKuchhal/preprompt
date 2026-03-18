@@ -1,6 +1,8 @@
 """DuckDB storage for PromptForge — persists to ~/.promptforge/history.db."""
 
+import os
 import uuid
+import socket
 import duckdb
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,14 +35,57 @@ def _get_connection() -> duckdb.DuckDBPyConnection:
                 updated_at   TIMESTAMP,
                 key          VARCHAR UNIQUE,
                 value        TEXT,
-                confidence   FLOAT,
+                confidence   DOUBLE,
                 source_count INTEGER
+            )
+        """)
+        _conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id   VARCHAR PRIMARY KEY,
+                started_at   TIMESTAMP,
+                last_seen_at TIMESTAMP,
+                hostname     VARCHAR,
+                pid          INTEGER
             )
         """)
     return _conn
 
 
-# ── Existing functions (unchanged) ────────────────────────────────────────────
+# ── Session identity ──────────────────────────────────────────────────────────
+
+def get_or_create_session() -> str:
+    """Return a stable session_id for this machine+process.
+
+    Strategy: one active session per hostname per calendar day.
+    Restarting the server mid-day continues the same session; a new day
+    always gets a fresh session.
+    """
+    hostname = socket.gethostname()
+    today = datetime.now(timezone.utc).date().isoformat()
+    session_key = f"{hostname}-{today}"
+
+    conn = _get_connection()
+    existing = conn.execute(
+        "SELECT session_id FROM sessions WHERE session_id = ?",
+        [session_key],
+    ).fetchone()
+
+    if existing:
+        conn.execute(
+            "UPDATE sessions SET last_seen_at = ? WHERE session_id = ?",
+            [datetime.now(timezone.utc), session_key],
+        )
+    else:
+        conn.execute(
+            "INSERT INTO sessions (session_id, started_at, last_seen_at, hostname, pid) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [session_key, datetime.now(timezone.utc), datetime.now(timezone.utc),
+             hostname, os.getpid()],
+        )
+    return session_key
+
+
+# ── Prompt history ────────────────────────────────────────────────────────────
 
 def save_prompt_event(
     original_prompt: str,
@@ -87,22 +132,58 @@ def get_recent_history(session_id: str, limit: int = 20) -> list[dict]:
     return [dict(zip(cols, row)) for row in rows]
 
 
-# ── Stack memory functions ─────────────────────────────────────────────────────
+def get_all_history(limit: int = 20, intercepted_only: bool = False) -> list[dict]:
+    """Return most recent events across all sessions."""
+    where = "WHERE was_intercepted = TRUE" if intercepted_only else ""
+    conn = _get_connection()
+    rows = conn.execute(f"""
+        SELECT id, timestamp, original_prompt, optimized_prompt,
+               classifier_score, was_intercepted, turn_number, session_id
+        FROM prompt_history
+        {where}
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, [limit]).fetchall()
+    cols = ["id", "timestamp", "original_prompt", "optimized_prompt",
+            "classifier_score", "was_intercepted", "turn_number", "session_id"]
+    return [dict(zip(cols, row)) for row in rows]
+
+
+# ── Stack memory ──────────────────────────────────────────────────────────────
 
 def upsert_stack_memory(key: str, value: str, confidence: float) -> None:
-    """Insert or update a stack memory entry, incrementing source_count."""
+    """Upsert a stack memory entry with compounding confidence.
+
+    - First occurrence: store confidence as-is.
+    - Same key + same value again: new_confidence = min(0.99, existing + 0.02)
+    - Same key + different value: reset confidence to 0.6, reset source_count to 1.
+
+    get_stack_memory() filters at >= 0.6, meaning "seen at least once with no
+    contradictions". Confidence compounds with each confirming observation.
+    """
     conn = _get_connection()
     existing = conn.execute(
-        "SELECT id, source_count FROM stack_memory WHERE key = ?", [key]
+        "SELECT id, value, confidence, source_count FROM stack_memory WHERE key = ?",
+        [key],
     ).fetchone()
 
     if existing:
-        entry_id, source_count = existing
-        conn.execute("""
-            UPDATE stack_memory
-            SET updated_at = ?, value = ?, confidence = ?, source_count = ?
-            WHERE id = ?
-        """, [datetime.now(timezone.utc), value, confidence, source_count + 1, entry_id])
+        entry_id, existing_value, existing_confidence, source_count = existing
+        if existing_value == value:
+            # Same value: compound confidence upward
+            new_confidence = min(0.99, existing_confidence + 0.02)
+            conn.execute("""
+                UPDATE stack_memory
+                SET updated_at = ?, confidence = ?, source_count = ?
+                WHERE id = ?
+            """, [datetime.now(timezone.utc), new_confidence, source_count + 1, entry_id])
+        else:
+            # Value changed: new evidence overrides old with lower initial trust
+            conn.execute("""
+                UPDATE stack_memory
+                SET updated_at = ?, value = ?, confidence = 0.6, source_count = 1
+                WHERE id = ?
+            """, [datetime.now(timezone.utc), value, entry_id])
     else:
         conn.execute("""
             INSERT INTO stack_memory (id, updated_at, key, value, confidence, source_count)
@@ -111,7 +192,11 @@ def upsert_stack_memory(key: str, value: str, confidence: float) -> None:
 
 
 def get_stack_memory() -> dict[str, str]:
-    """Return all memory entries as {key: value} where confidence >= 0.6."""
+    """Return {key: value} for all entries with confidence >= 0.6.
+
+    Threshold of 0.6 means "seen at least once with no contradictions".
+    Confidence compounds with repeated confirming observations.
+    """
     conn = _get_connection()
     rows = conn.execute("""
         SELECT key, value FROM stack_memory

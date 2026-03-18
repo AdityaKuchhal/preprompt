@@ -12,6 +12,45 @@ import os
 import json
 
 
+# ── Box annotation constants ──────────────────────────────────────────────────
+_WIDTH  = 62          # total box width
+_INNER  = _WIDTH - 4  # content between "║ " and " ║"  (58 chars)
+_TEXT_W = 48          # prompt text width after label   (58 - 10)
+
+
+def _box_line(content: str) -> str:
+    return f"║ {content:<{_INNER}} ║"
+
+
+def _render_annotation(score: int, reason: str, original: str, optimized: str) -> str:
+    import textwrap
+
+    # Header: ╔═ PromptForge +{score} ══...══╗
+    prefix = f"╔═ PromptForge +{score} "
+    header = prefix + "═" * (_WIDTH - len(prefix) - 1) + "╗"
+
+    # Reason (wrapped to inner width)
+    reason_lines = [_box_line(l) for l in (textwrap.wrap(reason, _INNER) or [""])]
+
+    # Separator
+    sep = "╠" + "═" * (_WIDTH - 2) + "╣"
+
+    # ORIGINAL (truncated to TEXT_W)
+    orig_text = original if len(original) <= _TEXT_W else original[:_TEXT_W - 3] + "..."
+    orig_line = _box_line(f"ORIGINAL  {orig_text}")
+
+    # OPTIMIZED (wrapped, continuation indented 10 spaces to align with text)
+    opt_wrapped = textwrap.wrap(optimized, _TEXT_W) or [optimized[:_TEXT_W]]
+    opt_lines = [_box_line(f"OPTIMIZED {opt_wrapped[0]}")] + [
+        _box_line(f"          {line}") for line in opt_wrapped[1:]
+    ]
+
+    # Footer
+    footer = "╚" + "═" * (_WIDTH - 2) + "╝"
+
+    return "\n".join([header] + reason_lines + [sep, orig_line] + opt_lines + [footer])
+
+
 def main() -> None:
     raw = sys.stdin.read()
 
@@ -66,12 +105,14 @@ def main() -> None:
 
         # ── Optimize via Haiku API ────────────────────────────────────────────
         from mcp_server.optimizer import optimize
-        from storage.db import save_prompt_event
+        from storage.db import save_prompt_event, get_or_create_session
 
         result = optimize(prompt, history)
         optimized: str = result["optimized_prompt"]
         reason: str = result["reason"]
         was_intercepted: bool = optimized != prompt
+
+        session_id = get_or_create_session()
 
         save_prompt_event(
             original_prompt=prompt,
@@ -79,7 +120,7 @@ def main() -> None:
             classifier_score=score,
             was_intercepted=was_intercepted,
             turn_number=turn,
-            session_id="hook-session",
+            session_id=session_id,
         )
 
         # ── Update stack memory (failure must never block the hook) ───────────
@@ -89,7 +130,12 @@ def main() -> None:
         except Exception as mem_err:
             print(f"[PromptForge] Memory update failed: {mem_err}", file=sys.stderr)
 
-        print(f"[PromptForge +{score}] {reason}", file=sys.stderr)
+        # ── Rich annotation to stderr ─────────────────────────────────────────
+        if was_intercepted:
+            print(_render_annotation(score, reason, prompt, optimized), file=sys.stderr)
+        else:
+            print(f"[PromptForge +{score}] {reason}", file=sys.stderr)
+
         print(json.dumps({"prompt": optimized}))
 
     except Exception as e:

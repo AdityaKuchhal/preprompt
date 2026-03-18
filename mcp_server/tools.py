@@ -1,17 +1,17 @@
 """MCP tool definitions exposed to Claude Code / Cursor."""
 
-import uuid
 from mcp.server.fastmcp import FastMCP
 
 from mcp_server.classifier import classify_prompt, OPTIMIZATION_THRESHOLD
 from mcp_server.optimizer import optimize
 from mcp_server.extractor import update_memory_from_prompt
-from storage.db import save_prompt_event, get_recent_history
+from storage.db import save_prompt_event, get_recent_history, get_or_create_session
 
 mcp = FastMCP("PromptForge")
 
-# One session_id per server process — groups all events from this run together
-_SESSION_ID = str(uuid.uuid4())
+# Stable session identity: one session per hostname per calendar day.
+# Kept as a module-level alias so existing tests can import _SESSION_ID.
+_SESSION_ID = get_or_create_session()
 
 
 @mcp.tool()
@@ -57,7 +57,7 @@ def optimize_prompt(
         classifier_score=score,
         was_intercepted=was_intercepted,
         turn_number=turn_number,
-        session_id=_SESSION_ID,
+        session_id=get_or_create_session(),
     )
 
     update_memory_from_prompt(user_prompt, conversation_history)
@@ -73,4 +73,4 @@ def optimize_prompt(
 @mcp.tool()
 def get_prompt_history(limit: int = 20) -> list[dict]:
     """Return the *limit* most recent prompt events for this session."""
-    return get_recent_history(_SESSION_ID, limit)
+    return get_recent_history(get_or_create_session(), limit)

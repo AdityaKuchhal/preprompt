@@ -184,3 +184,58 @@ def test_memory_below_confidence_threshold_excluded(tmp_path, monkeypatch):
     upsert_stack_memory("language", "python", 0.3)
     memory = get_stack_memory()
     assert "language" not in memory
+
+
+# ── Phase 5: session identity + memory consolidation + cross-session history ──
+
+def test_get_or_create_session_is_stable(tmp_path, monkeypatch):
+    import storage.db as db_module
+    monkeypatch.setattr(db_module, "_DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(db_module, "_conn", None)
+    from storage.db import get_or_create_session
+    session1 = get_or_create_session()
+    session2 = get_or_create_session()
+    assert session1 == session2  # same day, same host = same session
+
+
+def test_memory_confidence_compounds(tmp_path, monkeypatch):
+    import storage.db as db_module
+    monkeypatch.setattr(db_module, "_DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(db_module, "_conn", None)
+    from storage.db import upsert_stack_memory, get_full_stack_memory
+    upsert_stack_memory("language", "python", 0.8)
+    upsert_stack_memory("language", "python", 0.8)
+    upsert_stack_memory("language", "python", 0.8)
+    entries = get_full_stack_memory()
+    lang = next(e for e in entries if e["key"] == "language")
+    assert lang["confidence"] > 0.8   # compounded up
+    assert lang["source_count"] == 3
+
+
+def test_memory_value_change_resets_confidence(tmp_path, monkeypatch):
+    import storage.db as db_module
+    monkeypatch.setattr(db_module, "_DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(db_module, "_conn", None)
+    from storage.db import upsert_stack_memory, get_full_stack_memory
+    upsert_stack_memory("framework", "fastapi", 0.8)
+    upsert_stack_memory("framework", "fastapi", 0.8)   # confidence now 0.82
+    upsert_stack_memory("framework", "django", 0.8)    # value changed
+    entries = get_full_stack_memory()
+    fw = next(e for e in entries if e["key"] == "framework")
+    assert fw["value"] == "django"
+    assert fw["confidence"] == 0.6   # reset on value change
+    assert fw["source_count"] == 1   # reset on value change
+
+
+def test_get_all_history_returns_cross_session(tmp_path, monkeypatch):
+    import storage.db as db_module
+    monkeypatch.setattr(db_module, "_DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(db_module, "_conn", None)
+    from storage.db import save_prompt_event, get_all_history
+    save_prompt_event("prompt1", "opt1", 60, True,  1, "session-a")
+    save_prompt_event("prompt2", "opt2", 30, False, 2, "session-b")
+    all_history = get_all_history(limit=10)
+    assert len(all_history) == 2
+    sessions = {e["session_id"] for e in all_history}
+    assert "session-a" in sessions
+    assert "session-b" in sessions

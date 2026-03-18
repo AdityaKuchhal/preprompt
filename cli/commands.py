@@ -53,7 +53,7 @@ def _open_db() -> duckdb.DuckDBPyConnection:
 def history_cmd() -> None:
     parser = argparse.ArgumentParser(
         prog="promptforge-history",
-        description="Show recent prompts seen by PromptForge.",
+        description="Show recent prompts seen by PromptForge (all sessions).",
     )
     parser.add_argument("--limit", type=int, default=20, metavar="N",
                         help="Maximum rows to display (default: 20)")
@@ -61,18 +61,14 @@ def history_cmd() -> None:
                         help="Show only prompts that were optimized")
     args = parser.parse_args()
 
-    conn = _open_db()
-    where = "WHERE was_intercepted = TRUE" if args.intercepted_only else ""
-    rows = conn.execute(f"""
-        SELECT timestamp, classifier_score, was_intercepted, original_prompt
-        FROM prompt_history
-        {where}
-        ORDER BY timestamp DESC
-        LIMIT {args.limit}
-    """).fetchall()
-    conn.close()
+    if not _DB_PATH.exists():
+        print("No history database found. Run PromptForge and send a few prompts first.")
+        return
 
-    if not rows:
+    from storage.db import get_all_history
+    events = get_all_history(limit=args.limit, intercepted_only=args.intercepted_only)
+
+    if not events:
         print("No prompt history found.")
         return
 
@@ -86,11 +82,11 @@ def history_cmd() -> None:
     print(header)
     print(sep)
 
-    for ts, score, intercepted, original in rows:
-        time_str   = _relative_time(ts)
-        int_str    = "yes" if intercepted else "no"
-        prompt_str = _truncate(original or "", col_prompt)
-        print(f"{time_str:<{col_time}}  {score:>{col_score}}  {int_str:<{col_int}}  {prompt_str}")
+    for e in events:
+        time_str   = _relative_time(e["timestamp"])
+        int_str    = "yes" if e["was_intercepted"] else "no"
+        prompt_str = _truncate(e["original_prompt"] or "", col_prompt)
+        print(f"{time_str:<{col_time}}  {e['classifier_score']:>{col_score}}  {int_str:<{col_int}}  {prompt_str}")
 
 
 # ── promptforge-stats ─────────────────────────────────────────────────────────
