@@ -30,19 +30,20 @@ def main() -> None:
         print(json.dumps({"prompt": prompt}))
 
     try:
-        # ── Locate the project root relative to this hook file ────────────────
-        # __file__ lives at  <project>/.claude/hooks/pre_prompt.py
-        # so we need to go up TWO levels: hooks/ → .claude/ → promptforge/
-        hooks_dir    = os.path.dirname(os.path.abspath(__file__))
-        claude_dir   = os.path.dirname(hooks_dir)
-        project_root = os.path.dirname(claude_dir)
-        sys.path.insert(0, project_root)
+        # Always resolve paths relative to this file's location,
+        # not the caller's working directory
+        _HOOK_FILE = os.path.abspath(__file__)
+        _HOOK_DIR = os.path.dirname(_HOOK_FILE)          # .claude/hooks/
+        _CLAUDE_DIR = os.path.dirname(_HOOK_DIR)          # .claude/
+        _PROJECT_ROOT = os.path.dirname(_CLAUDE_DIR)      # promptforge/
 
-        # ── Load .env before importing any module that needs ANTHROPIC_API_KEY ─
-        env_file = os.path.join(project_root, ".env")
-        if os.path.exists(env_file):
-            from dotenv import load_dotenv
-            load_dotenv(env_file, override=False)
+        # Add project root to path so mcp_server + storage imports work
+        if _PROJECT_ROOT not in sys.path:
+            sys.path.insert(0, _PROJECT_ROOT)
+
+        # Load .env from project root
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
         # ── Classify (no API call — always fast) ──────────────────────────────
         from mcp_server.classifier import classify_prompt, OPTIMIZATION_THRESHOLD

@@ -68,7 +68,13 @@ def optimize(prompt: str, history: list) -> dict:
             system=_SYSTEM + memory_context,
             messages=[{"role": "user", "content": user_message}],
         )
-        data = json.loads(response.content[0].text.strip())
+        raw = response.content[0].text.strip()
+        # Strip markdown code fences if the model wraps its JSON response
+        if raw.startswith("```"):
+            raw = raw.split("```", 2)[1]          # drop opening fence + tag
+            raw = raw[raw.find("\n") + 1:]         # drop the "json" line
+            raw = raw.rsplit("```", 1)[0].strip()  # drop closing fence
+        data = json.loads(raw)
         return {
             "optimized_prompt": data.get("optimized_prompt", prompt),
             "reason": data.get("reason", ""),
