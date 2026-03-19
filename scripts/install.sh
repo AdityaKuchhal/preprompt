@@ -23,7 +23,8 @@ fi
 echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > .env
 echo "MCP_TRANSPORT=stdio" >> .env
 
-# 5. Register Claude Code global hook
+# 5. Migrate old DuckDB file + register Claude Code global hook
+# (setup_global_hook.py handles the migration automatically)
 python3 scripts/setup_global_hook.py
 
 # 6. Register Cursor

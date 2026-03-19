@@ -26,7 +26,6 @@ Issues = "https://github.com/yashdeeptehlan/promptforge/issues"
 dependencies = [
     "mcp>=1.0.0",
     "anthropic>=0.40.0",
-    "duckdb>=0.10.0",
     "python-dotenv>=1.0.0",
     "pydantic-settings>=2.0.0",
 ]

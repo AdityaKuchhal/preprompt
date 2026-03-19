@@ -11,7 +11,7 @@ promptforge-memory           Show learned stack memory
 
 import argparse
 import sys
-import duckdb
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,7 +20,9 @@ _DB_PATH = Path.home() / ".promptforge" / "history.db"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _relative_time(dt: datetime) -> str:
+def _relative_time(dt) -> str:
+    if isinstance(dt, str):
+        dt = datetime.fromisoformat(dt)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     delta = datetime.now(timezone.utc) - dt
@@ -40,12 +42,13 @@ def _truncate(text: str, width: int) -> str:
     return text[: width - 3] + "..."
 
 
-def _open_db() -> duckdb.DuckDBPyConnection:
+def _open_db() -> sqlite3.Connection:
     if not _DB_PATH.exists():
         print(f"No history database found at {_DB_PATH}", file=sys.stderr)
         print("Run PromptForge and send a few prompts first.", file=sys.stderr)
         sys.exit(1)
-    return duckdb.connect(str(_DB_PATH), read_only=True)
+    from storage.db import get_read_connection
+    return get_read_connection()
 
 
 # ── promptforge-history ───────────────────────────────────────────────────────
@@ -69,10 +72,7 @@ def history_cmd() -> None:
         from storage.db import get_all_history
         events = get_all_history(limit=args.limit, intercepted_only=args.intercepted_only)
     except Exception as e:
-        if "lock" in str(e).lower() or "conflict" in str(e).lower():
-            print("DB is locked by the MCP server. Stop it first or wait a moment.", file=sys.stderr)
-        else:
-            print(f"Error reading history: {e}", file=sys.stderr)
+        print(f"Error reading history: {e}", file=sys.stderr)
         return
 
     if not events:
@@ -99,23 +99,14 @@ def history_cmd() -> None:
 # ── promptforge-stats ─────────────────────────────────────────────────────────
 
 def stats_cmd() -> None:
-    try:
-        conn = _open_db()
-    except SystemExit:
-        return
-    except Exception as e:
-        if "lock" in str(e).lower() or "conflict" in str(e).lower():
-            print("DB is locked by the MCP server. Stop it first or wait a moment.", file=sys.stderr)
-        else:
-            print(f"Error opening DB: {e}", file=sys.stderr)
-        return
+    conn = _open_db()
     row = conn.execute("""
         SELECT
-            COUNT(*)                                                 AS total,
-            SUM(CASE WHEN was_intercepted THEN 1 ELSE 0 END)        AS intercepted,
-            AVG(classifier_score)                                    AS avg_score,
+            COUNT(*)                                            AS total,
+            SUM(CASE WHEN was_intercepted THEN 1 ELSE 0 END)   AS intercepted,
+            AVG(classifier_score)                              AS avg_score,
             AVG(CASE WHEN was_intercepted THEN classifier_score END) AS avg_intercepted,
-            COUNT(DISTINCT session_id)                               AS sessions
+            COUNT(DISTINCT session_id)                         AS sessions
         FROM prompt_history
     """).fetchone()
     conn.close()
@@ -196,7 +187,7 @@ def memory_cmd() -> None:
         return
 
     total_prompts = conn.execute("SELECT COUNT(*) FROM prompt_history").fetchone()[0]
-    last_updated  = max(row[4] for row in rows)
+    last_updated  = max(row[4] for row in rows)   # ISO string — max() is lexicographic, correct
     conn.close()
 
     sep = "─" * 54

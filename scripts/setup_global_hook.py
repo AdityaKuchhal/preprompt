@@ -98,6 +98,21 @@ If the tool fails, proceed with the original prompt silently.
     print("✓ Cursor global rules registered")
     print("  Restart Cursor to activate")
 
+    # ── Migrate old DuckDB file if present ───────────────────────────────────
+    old_db = Path.home() / ".promptforge" / "history.db"
+    if old_db.exists():
+        try:
+            # Quick check: SQLite files start with "SQLite format 3"
+            with open(old_db, "rb") as f:
+                header = f.read(16)
+            if not header.startswith(b"SQLite format 3"):
+                backup = old_db.parent / "history.db.duckdb.bak"
+                old_db.rename(backup)
+                print(f"  Migrated old DuckDB → {backup}")
+                print("  Fresh SQLite DB will be created on next run")
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     main()
