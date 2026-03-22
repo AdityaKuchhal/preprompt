@@ -29,3 +29,4 @@ htmlcov/
 
 # PromptForge runtime DB lives outside the repo:
 # ~/.promptforge/history.db  ← not tracked
+.venv/
