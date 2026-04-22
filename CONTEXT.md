@@ -83,6 +83,10 @@ tests/
 - Phase 7b: promptforge-optimize CLI command + multi-IDE support (Windsurf, Zed)
 - Phase 7c (bonus): PromptForge as a Claude Skill — a .md skill file for tools that don't support MCP hooks
 
+## GitHub Pages
+Landing page: https://yashdeeptehlan.github.io/promptforge/
+Source: docs/index.html (Tailwind CDN, JetBrains Mono, interactive demo, session replay, FAQ)
+
 ## How new chats should start
 User will say "continuing from last chat" or paste this file.
 Ask for: cat promptforge/CONTEXT.md

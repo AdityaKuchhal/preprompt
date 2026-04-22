@@ -85,6 +85,10 @@ Negative: short prompt (−20), "what is/are/does" opener (−15), already struc
 
 One session per `hostname + calendar day`. Session key format: `{hostname}-{YYYY-MM-DD}`.
 
+### Landing page
+
+`docs/index.html` — GitHub Pages site (Tailwind CDN, Space Grotesk + JetBrains Mono, dark theme). Sections: hero terminal, interactive classifier demo, how it works, stack memory CLI mockup, session replay, stats bar, open source CTA, beta signup, FAQ. All interactivity is vanilla JS — no build step.
+
 ## Mandatory after every task
 
 After completing any task in this repository, you MUST always:
