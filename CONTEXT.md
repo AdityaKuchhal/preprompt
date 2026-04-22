@@ -1,4 +1,4 @@
-<!-- Last updated: 2026-03-19 18:48 -->
+<!-- Last updated: 2026-04-22 -->
 # PromptForge — CONTEXT.md
 # This file is auto-maintained. Read it fully at the start of every chat.
 
@@ -8,27 +8,29 @@ Phase 6 complete. 28/28 tests passing.
 ## What PromptForge does
 MCP server that intercepts prompts in Claude Code and Cursor, scores them
 with a heuristic classifier (no API), optimizes complex ones using Claude
-Haiku, logs everything to DuckDB, and learns the user's stack over time
-via a memory layer. Runs entirely locally.
+Haiku, logs everything to SQLite (WAL mode), and learns the user's stack
+over time via a memory layer. Runs entirely locally.
 
 ## Tech stack
-- Python 3.11+, FastMCP, Anthropic SDK, DuckDB, pydantic-settings
+- Python 3.11+, FastMCP, Anthropic SDK, SQLite (WAL mode), pydantic-settings
 - Haiku model: claude-haiku-4-5-20251001
-- DB path: ~/.promptforge/history.db
+- DB: SQLite WAL at ~/.promptforge/history.db
 
 ## File map
 mcp_server/
   server.py      — entry point, mcp.run(transport=settings.mcp_transport)
   tools.py       — MCP tools: optimize_prompt, get_prompt_history
                    uses get_or_create_session() for stable daily session identity
-  classifier.py  — pure heuristic scorer, threshold=45, no API calls
+  classifier.py  — pure heuristic scorer, threshold=38, multi-req weight=12/hit, no API calls
   optimizer.py   — Haiku API call + memory context injection
                    strips markdown fences from model JSON response
   extractor.py   — heuristic stack signal extractor
   config.py      — pydantic-settings, reads .env
 
 storage/
-  db.py          — DuckDB: prompt_history + stack_memory + sessions tables
+  db.py          — SQLite WAL: prompt_history + stack_memory + sessions tables
+                   Sidecar pattern: hook writes JSON to ~/.promptforge/pending/,
+                   flushed by MCP server or CLI commands via flush_pending_hook_events()
                    get_or_create_session(): stable {hostname}-{date} session key
                    get_all_history(): cross-session history query
                    upsert_stack_memory(): compounding confidence (+0.02/hit, reset on value change)
@@ -41,6 +43,7 @@ cli/
   settings.json           — MCP server + UserPromptSubmit hook config
   hooks/pre_prompt.py     — interception hook with rich box annotation on stderr
                             path resolved via __file__ (CWD-independent)
+                            writes JSON sidecar to ~/.promptforge/pending/ — never touches DB directly
 
 scripts/
   install.sh              — one-command installer (Python check, pip, .env, hooks)
@@ -68,15 +71,17 @@ tests/
 - flush_pending_hook_events() -> int in storage/db.py
 
 ## Completed phases
-- Phase 1: scaffold, classifier, optimizer, DuckDB, MCP server
+- Phase 1: scaffold, classifier, optimizer, SQLite, MCP server
 - Phase 2: hook, Cursor install, CLI commands
 - Phase 3: stack memory, extractor, memory-aware optimizer
 - Phase 4: GitHub, live test, CONTEXT.md
 - Phase 5: session identity, memory consolidation, rich annotations, cross-session history
-- Phase 6: packaging, one-command install script, MIT license, distribution README
+- Phase 6: packaging, SQLite WAL migration, sidecar concurrency pattern, classifier tuned (38/12), absolute hook path, one-command install, MIT license, distribution README
 
 ## Next phases
 - Phase 7: PyPI publish (pip install promptforge)
+- Phase 7b: promptforge-optimize CLI command + multi-IDE support (Windsurf, Zed)
+- Phase 7c (bonus): PromptForge as a Claude Skill — a .md skill file for tools that don't support MCP hooks
 
 ## How new chats should start
 User will say "continuing from last chat" or paste this file.
