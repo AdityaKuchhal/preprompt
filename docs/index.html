@@ -190,20 +190,20 @@
     </div>
 
     <!-- Install command -->
-    <div class="mt-8 bg-surface-low rounded-xl border border-outline/20 p-5">
+    <div class="mt-8 bg-surface-low rounded-xl border border-outline/20 p-5 overflow-hidden">
       <div class="text-xs font-mono text-on-surface-variant/40 uppercase tracking-widest mb-3">Install in 3 commands</div>
       <div class="space-y-2">
-        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-          <code class="text-sm font-mono text-green-300">git clone https://github.com/yashdeeptehlan/preprompt</code>
-          <button onclick="copyCmd(this, 'git clone https://github.com/yashdeeptehlan/preprompt')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 copy-btn">copy</button>
+        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3 overflow-hidden">
+          <code class="text-sm font-mono text-green-300 min-w-0 break-all">git clone https://github.com/yashdeeptehlan/preprompt</code>
+          <button onclick="copyCmd(this, 'git clone https://github.com/yashdeeptehlan/preprompt')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 shrink-0 copy-btn">copy</button>
         </div>
-        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-          <code class="text-sm font-mono text-green-300">cd preprompt && ./scripts/install.sh</code>
-          <button onclick="copyCmd(this, 'cd preprompt && ./scripts/install.sh')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 copy-btn">copy</button>
+        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3 overflow-hidden">
+          <code class="text-sm font-mono text-green-300 min-w-0 break-all">cd preprompt && ./scripts/install.sh</code>
+          <button onclick="copyCmd(this, 'cd preprompt && ./scripts/install.sh')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 shrink-0 copy-btn">copy</button>
         </div>
-        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-          <code class="text-sm font-mono text-green-300">Restart Claude Code or Cursor — done.</code>
-          <span class="text-xs text-emerald-400 ml-4">✓ active</span>
+        <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3 overflow-hidden">
+          <code class="text-sm font-mono text-green-300 min-w-0 break-all">Restart Claude Code or Cursor — done.</code>
+          <span class="text-xs text-emerald-400 ml-4 shrink-0">✓ active</span>
         </div>
       </div>
     </div>
