@@ -1,4 +1,4 @@
-<!-- Last updated: 2026-04-28 12:58 -->
+<!-- Last updated: 2026-04-28 13:20 -->
 # PrePrompt — CONTEXT.md
 # This file is auto-maintained. Read it fully at the start of every chat.
 
@@ -107,7 +107,7 @@ tests/
 2. Go to https://pypi.org/manage/account/publishing/
 3. Add trusted publisher: owner=yashdeeptehlan, repo=preprompt, workflow=publish.yml, env=release
 4. Create GitHub environment "release" at https://github.com/yashdeeptehlan/preprompt/settings/environments
-5. Tag a release: git tag v0.1.0 && git push origin v0.1.0
+5. Tag a release: git tag v0.1.1 && git push origin v0.1.1
 
 ## Next phases
 - Phase 8: web dashboard (local FastAPI + HTMX) to browse history and replay sessions
