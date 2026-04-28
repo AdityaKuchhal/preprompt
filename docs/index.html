@@ -1,685 +1,1407 @@
-<!DOCTYPE html>
-<html class="dark" lang="en">
+<!doctype html>
+<html lang="en" class="theme-paper accent-amber density-comfy">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>PrePrompt | Your prompts, battle-tested.</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<style>
-  body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #e5e2e1; }
-  .font-headline { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
-  .font-mono { font-family: 'JetBrains Mono', monospace; }
-  .glass-panel { backdrop-filter: blur(20px); background: rgba(28, 27, 27, 0.8); }
-  .purple-glow { filter: drop-shadow(0 0 30px rgba(124, 58, 237, 0.3)); }
-  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
-  .score-bar { height: 4px; border-radius: 2px; transition: width 0.6s ease; }
-  .typing-cursor::after { content: '|'; animation: blink 1s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-  .copy-btn:active { transform: scale(0.95); }
-  details summary::-webkit-details-marker { display: none; }
-</style>
-<script>
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        colors: {
-          "surface-lowest": "#0e0e0e",
-          "surface-low": "#1c1b1b",
-          "surface": "#201f1f",
-          "surface-high": "#2a2a2a",
-          "surface-highest": "#353534",
-          "primary": "#d2bbff",
-          "primary-container": "#7c3aed",
-          "on-primary": "#ede0ff",
-          "outline": "#4a4455",
-          "on-surface-variant": "#ccc3d8",
-        }
-      }
-    }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>preprompt — your prompts, battle-tested</title>
+  <meta name="description" content="MCP server that intercepts and optimizes prompts in Claude Code and Cursor before they reach the LLM. Zero noise, sub-ms latency, runs locally." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+/* Preprompt landing — styles
+ * warm-neutral paper, ink ~0.18, single ochre accent.
+ * Mono-first: JetBrains Mono for display+UI; Inter Tight for body.
+ */
+
+:root {
+  --bg:        oklch(0.975 0.006 85);
+  --bg-2:      oklch(0.955 0.008 82);
+  --ink:       oklch(0.205 0.012 60);
+  --ink-2:     oklch(0.40 0.012 60);
+  --ink-3:     oklch(0.58 0.010 60);
+  --rule:      oklch(0.86 0.008 75);
+  --rule-soft: oklch(0.92 0.006 75);
+  --accent:    oklch(0.72 0.125 75);
+  --accent-ink: oklch(0.28 0.09 65);
+  --pos:       oklch(0.55 0.12 145);
+  --neg:       oklch(0.52 0.10 30);
+
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+
+  --radius: 4px;
+  --maxw: 1200px;
+  --pad-y: 120px;
+  --shell-x: 40px;
+}
+
+.theme-ink {
+  --bg:        oklch(0.16 0.012 60);
+  --bg-2:      oklch(0.20 0.013 60);
+  --ink:       oklch(0.96 0.006 85);
+  --ink-2:     oklch(0.78 0.010 80);
+  --ink-3:     oklch(0.58 0.010 75);
+  --rule:      oklch(0.30 0.013 60);
+  --rule-soft: oklch(0.24 0.012 60);
+  --accent:    oklch(0.80 0.14 75);
+  --accent-ink: oklch(0.92 0.11 75);
+}
+
+.accent-amber    { --accent: oklch(0.74 0.125 75);  --accent-ink: oklch(0.30 0.09 65); }
+.accent-electric { --accent: oklch(0.68 0.17 250);  --accent-ink: oklch(0.30 0.12 250); }
+.accent-mute     { --accent: oklch(0.55 0.04 260);  --accent-ink: oklch(0.30 0.02 260); }
+.theme-ink.accent-amber    { --accent-ink: oklch(0.92 0.11 75); }
+.theme-ink.accent-electric { --accent-ink: oklch(0.86 0.12 250); }
+.theme-ink.accent-mute     { --accent-ink: oklch(0.82 0.03 260); }
+
+.density-comfy   { --pad-y: 120px; }
+.density-compact { --pad-y: 80px; }
+
+.type-mono-only body,
+.type-mono-only p,
+.type-mono-only h1,
+.type-mono-only h2,
+.type-mono-only h3 { font-family: var(--mono) !important; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: inherit; text-decoration: none; }
+code { font-family: var(--mono); font-size: 0.92em; }
+em { font-style: normal; color: var(--accent-ink); background: color-mix(in oklch, var(--accent) 20%, transparent); padding: 0 3px; border-radius: 2px; }
+
+.shell { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--shell-x); }
+
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--ink) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+  opacity: 0.025;
+  z-index: 100;
+  mix-blend-mode: multiply;
+}
+
+/* ───────── NAV ───────── */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 24px var(--shell-x);
+  max-width: var(--maxw);
+  margin: 0 auto;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-wrap: wrap;
+}
+.nav-links {
+  display: flex; gap: 28px; align-items: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.nav-links a { transition: color 120ms; }
+.nav-links a:hover { color: var(--ink); }
+.nav-gh {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--ink);
+}
+.nav-gh-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent);
+}
+
+/* ───────── HERO ───────── */
+.hero {
+  padding: clamp(48px, 8vw, 96px) var(--shell-x) clamp(48px, 7vw, 80px);
+  max-width: var(--maxw);
+  margin: 0 auto;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 10px;
+  letter-spacing: 0.02em;
+}
+.eyebrow .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 20%, transparent);
+}
+.hero-title {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(40px, 5.2vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 22px 0 24px;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.hero-title-accent {
+  background: linear-gradient(to right,
+    color-mix(in oklch, var(--accent) 25%, transparent),
+    color-mix(in oklch, var(--accent) 25%, transparent));
+  background-repeat: no-repeat;
+  background-size: 100% 38%;
+  background-position: 0 88%;
+  padding: 0 4px;
+}
+.hero-sub {
+  font-family: var(--sans);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 54ch;
+  margin: 0 0 36px;
+  text-wrap: pretty;
+}
+
+.hero-ctas { display: flex; align-items: center; gap: 20px; margin-bottom: 48px; flex-wrap: wrap; }
+.hero-docs {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--ink);
+  transition: gap 180ms;
+}
+.hero-docs:hover { gap: 14px; }
+.hero-docs .arrow { color: var(--accent-ink); }
+
+.hero-meta {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 40px;
+  border-top: 1px solid var(--rule-soft);
+  padding-top: 24px;
+  font-family: var(--mono);
+}
+.hero-meta > div { display: flex; flex-direction: column; gap: 6px; }
+.hero-meta-k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.hero-meta-v { font-size: 14px; color: var(--ink); }
+
+/* copy-row */
+.copy-row {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 13px 16px 13px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+  transition: border-color 120ms, background 120ms;
+  max-width: 100%;
+}
+.copy-row:hover { border-color: var(--ink-3); }
+.copy-prefix { color: var(--accent-ink); user-select: none; }
+.copy-cmd { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-hint {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+
+/* ascii annotation */
+.ascii-wrap {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  overflow: hidden;
+  box-shadow: 0 1px 0 var(--rule-soft), 0 30px 60px -40px color-mix(in oklch, var(--ink) 40%, transparent);
+}
+.ascii-chrome {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
+}
+.cd { width: 10px; height: 10px; border-radius: 50%; background: var(--rule); display: inline-block; }
+.ascii-chrome .cd:first-child { background: color-mix(in oklch, var(--accent) 60%, var(--rule)); }
+.ascii-chrome-title {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.ascii-box {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+  padding: 22px 24px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.ansi-yellow { color: var(--accent-ink); font-weight: 600; }
+.ansi-dim    { color: var(--ink-3); }
+
+/* ───────── SECTION HEADER ───────── */
+section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 0 auto; }
+.sh { margin-bottom: 56px; max-width: 780px; }
+.sh-kicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-ink);
+  margin-bottom: 20px;
+}
+.sh-title {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.sh-sub {
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ───────── BEFORE/AFTER ───────── */
+.ba-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+.ba-chip {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  transition: all 120ms;
+}
+.ba-chip:hover { border-color: var(--ink-3); color: var(--ink); }
+.ba-chip.on {
+  background: var(--bg-2);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.ba-chip-num { color: var(--ink-3); }
+.ba-chip-label { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ba-chip-score { font-weight: 600; }
+.ba-chip-score.pos { color: var(--accent-ink); }
+.ba-chip-score.neg { color: var(--ink-3); }
+
+.ba-panes {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.ba-pane { padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; }
+.ba-pane + .ba-pane { border-left: 1px solid var(--rule); }
+.ba-pane-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono);
+}
+.ba-pane-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  padding: 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.ba-pane-tag.alt {
+  color: var(--accent-ink);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
+.ba-pane-meta { font-size: 11px; color: var(--ink-3); text-transform: lowercase; letter-spacing: 0.04em; }
+.ba-pane-text {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+  margin: 0;
+  white-space: pre-wrap;
+}
+.ba-after-text { color: var(--ink); }
+.ba-passthrough { color: var(--ink-2); }
+.ba-passthrough-line { color: var(--ink-3); font-style: italic; }
+
+.ba-arrow {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 8px;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  background: var(--bg);
+  min-width: 120px;
+}
+.ba-arrow-line {
+  flex: 1;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--rule) 40%, var(--rule) 60%, transparent);
+}
+.ba-arrow-badge {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 10px;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  font-family: var(--mono);
+  border-radius: var(--radius);
+  margin: 12px 0;
+}
+.ba-arrow-num { font-size: 22px; font-weight: 600; color: var(--accent-ink); letter-spacing: -0.02em; }
+.ba-arrow-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+.ba-reason {
+  margin-top: 16px;
+  padding: 14px 18px;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  display: flex; gap: 14px; align-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ba-reason-k {
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.ba-reason-v { color: var(--ink); }
+
+/* ───────── HOW ───────── */
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.how-step {
+  padding: 32px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.how-step:nth-child(2n) { border-right: none; }
+.how-step:nth-last-child(-n+2) { border-bottom: none; }
+.how-step-head { display: flex; align-items: baseline; gap: 14px; font-family: var(--mono); }
+.how-step-n {
+  font-size: 13px;
+  color: var(--accent-ink);
+  letter-spacing: 0.08em;
+}
+.how-step-t {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.how-step-d {
+  font-family: var(--sans);
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 52ch;
+}
+.how-step-code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
+/* ───────── CLASSIFIER ───────── */
+.cls-table {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--bg-2);
+}
+.cls-row {
+  display: grid;
+  grid-template-columns: 90px 120px 1fr;
+  gap: 24px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--rule-soft);
+  align-items: center;
+}
+.cls-row:last-of-type { border-bottom: none; }
+.cls-row.cls-head {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  padding: 12px 22px;
+}
+.cls-score { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cls-score.pos { color: var(--accent-ink); }
+.cls-score.neg { color: var(--ink-3); }
+.cls-hit { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.cls-hit-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--rule); border: 1px solid var(--ink-3);
+}
+.cls-hit-dot.on {
+  background: var(--accent);
+  border-color: var(--accent-ink);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 20%, transparent);
+}
+.cls-prompt { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cls-foot {
+  padding: 14px 22px;
+  background: var(--bg);
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* ───────── MEMORY ───────── */
+.mem-panes {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.mem-term {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.mem-term-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+.mem-term-title {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.mem-term-body {
+  padding: 20px 22px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ink);
+}
+.mem-prompt { color: var(--ink-3); }
+.mem-prompt::before { content: "❯ "; color: var(--accent-ink); }
+.mem-prompt { color: var(--ink); }
+.mem-title-label { color: var(--ink); font-weight: 600; }
+.mem-rule { color: var(--rule); letter-spacing: -1px; }
+.mem-row {
+  position: relative;
+  padding: 4px 0;
+  display: grid;
+  grid-template-columns: 100px 130px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.mem-k { color: var(--ink-3); }
+.mem-v { color: var(--accent-ink); }
+.mem-c { color: var(--ink-2); }
+.mem-s { color: var(--ink-3); font-size: 11.5px; }
+.mem-bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: color-mix(in oklch, var(--accent) 50%, transparent);
+}
+
+.mem-copy h3 {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+.mem-copy p {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 0 0 24px;
+}
+.mem-bullets { display: flex; flex-direction: column; gap: 10px; }
+.mem-bullet {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.mem-bullet > span:first-child {
+  color: var(--accent-ink);
+  margin-right: 8px;
+  font-weight: 600;
+}
+.mem-bullet code {
+  background: var(--bg-2);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+/* ───────── ARCHITECTURE ───────── */
+.arch-box {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  margin: 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+.arch-note {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 20px 0 0;
+  max-width: 66ch;
+}
+
+/* ───────── COST ───────── */
+.cost { padding-top: 0; }
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.cost-item {
+  padding: 40px 32px;
+  border-right: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cost-item:last-child { border-right: none; }
+.cost-item.cost-emph { background: var(--bg); }
+.cost-k {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+.cost-v {
+  font-family: var(--mono);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+  margin: 6px 0 10px;
+}
+.cost-emph .cost-v { color: var(--accent-ink); }
+.cost-d {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ───────── INSTALL ───────── */
+.inst-card {
+  padding: 36px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.inst-step {
+  display: flex; align-items: baseline; gap: 14px;
+  font-family: var(--mono);
+  margin-top: 12px;
+}
+.inst-step:first-child { margin-top: 0; }
+.inst-n { color: var(--accent-ink); font-size: 12px; letter-spacing: 0.08em; }
+.inst-l { color: var(--ink); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.inst-foot {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.inst-foot code { color: var(--ink); background: var(--bg); padding: 1px 5px; border: 1px solid var(--rule); border-radius: 2px; }
+
+/* ───────── FOOTER ───────── */
+.foot {
+  max-width: var(--maxw);
+  margin: 80px auto 0;
+  padding: 40px var(--shell-x);
+  border-top: 1px solid var(--rule-soft);
+}
+.foot-top { display: flex; justify-content: space-between; align-items: center; }
+.foot-links { display: flex; gap: 24px; font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.foot-links a:hover { color: var(--ink); }
+.foot-rule { height: 1px; background: var(--rule-soft); margin: 24px 0; }
+.foot-bot {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+/* ───────── RESPONSIVE ───────── */
+
+@media (min-width: 1440px) {
+  :root { --maxw: 1280px; --shell-x: 56px; }
+}
+@media (min-width: 1800px) {
+  :root { --maxw: 1360px; }
+}
+
+@media (max-width: 1024px) {
+  :root { --shell-x: 32px; --pad-y: 96px; }
+  .hero-grid { gap: 48px; }
+  .hero-title { font-size: clamp(36px, 6vw, 56px); }
+  .hero-meta { gap: 28px; }
+  .how-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 820px) {
+  :root { --shell-x: 24px; --pad-y: 72px; }
+
+  .nav { padding: 18px var(--shell-x); }
+  .nav-links { gap: 18px; font-size: 12.5px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .hero { padding: 48px var(--shell-x) 56px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  .hero-title { font-size: clamp(32px, 7.5vw, 48px); }
+  .hero-sub { font-size: 16px; }
+  .hero-meta { grid-template-columns: repeat(2, 1fr); gap: 20px 24px; }
+  .hero-ctas { gap: 14px; }
+
+  .sh { margin-bottom: 40px; }
+  .sh-title { font-size: clamp(24px, 4.4vw, 32px); }
+  .sh-sub { font-size: 15.5px; }
+
+  .ba-panes { grid-template-columns: 1fr; }
+  .ba-pane + .ba-pane { border-left: none; border-top: 1px solid var(--rule); }
+  .ba-pane { padding: 22px 20px; }
+  .ba-arrow {
+    flex-direction: row; min-width: 0; padding: 10px 14px;
+    border-left: none; border-right: none;
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
   }
-</script>
+  .ba-arrow-line { width: auto; height: 1px; flex: 1; background: linear-gradient(to right, transparent, var(--rule) 40%, var(--rule) 60%, transparent); }
+  .ba-arrow-badge { margin: 0 12px; padding: 8px 14px; flex-direction: row; gap: 12px; }
+  .ba-arrow-num { font-size: 18px; }
+
+  .ba-chip-label { max-width: 180px; }
+
+  .how-grid { grid-template-columns: 1fr; }
+  .how-step { border-right: none; border-bottom: 1px solid var(--rule); padding: 26px 22px; }
+  .how-step:last-child { border-bottom: none; }
+
+  .mem-panes { grid-template-columns: 1fr; gap: 28px; }
+  .mem-row { grid-template-columns: 90px 110px 1fr; font-size: 12px; gap: 10px; }
+  .mem-s { display: none; }
+  .mem-copy h3 { font-size: 20px; }
+
+  .cost-grid { grid-template-columns: 1fr; }
+  .cost-item { border-right: none; border-bottom: 1px solid var(--rule); padding: 28px 24px; }
+  .cost-item:last-child { border-bottom: none; }
+  .cost-v { font-size: 34px; }
+
+  .inst-card { padding: 24px 20px; }
+
+  .foot { margin-top: 40px; padding: 32px var(--shell-x); }
+  .foot-top { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .foot-bot { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .foot-links { flex-wrap: wrap; gap: 16px; }
+}
+
+@media (max-width: 560px) {
+  :root { --shell-x: 18px; --pad-y: 60px; }
+
+  .ascii-box { font-size: 10.5px; padding: 16px 16px; line-height: 1.5; }
+  .mem-term-body { padding: 16px 16px; font-size: 11.5px; line-height: 1.65; }
+  .arch-box { font-size: 11px; padding: 20px 16px; line-height: 1.55; }
+  .how-step-code { font-size: 11.5px; padding: 12px 14px; }
+
+  .cls-table { font-size: 12px; }
+  .cls-row.cls-head { display: none; }
+  .cls-row {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "score hit"
+      "prompt prompt";
+    gap: 6px 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .cls-score  { grid-area: score; }
+  .cls-hit    { grid-area: hit; justify-self: end; }
+  .cls-prompt { grid-area: prompt; white-space: normal; line-height: 1.5; color: var(--ink-2); }
+  .cls-foot { padding: 14px 16px; font-size: 10.5px; }
+
+  .mem-row { grid-template-columns: 84px 1fr; row-gap: 2px; }
+  .mem-c, .mem-s { grid-column: 1 / -1; font-size: 11px; }
+
+  .nav { padding: 14px var(--shell-x); }
+  .nav-links { gap: 14px; }
+  .nav-links a:not(.nav-gh) { display: none; }
+  .nav-gh { padding: 5px 10px; font-size: 12px; }
+
+  .hero { padding: 36px var(--shell-x) 44px; }
+  .hero-title { font-size: clamp(30px, 9vw, 40px); line-height: 1.05; }
+  .hero-sub { font-size: 15px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; gap: 18px 20px; padding-top: 20px; }
+  .hero-docs { font-size: 12px; }
+
+  .copy-row { font-size: 11.5px; padding: 11px 12px; gap: 10px; }
+  .copy-hint { display: none; }
+
+  .ba-pane-text { font-size: 12.5px; line-height: 1.6; }
+  .ba-chip { padding: 8px 12px; font-size: 11.5px; }
+  .ba-chip-label { max-width: 140px; }
+
+  .cost-k { font-size: 10.5px; }
+  .cost-v { font-size: 30px; }
+  .cost-d { font-size: 13px; }
+
+  .ascii-chrome, .mem-term-head { padding: 8px 12px; }
+}
+
+@media (max-width: 380px) {
+  :root { --shell-x: 14px; }
+  .hero-title { font-size: 28px; }
+  .hero-meta { grid-template-columns: 1fr; gap: 14px; }
+  .ba-chip-label { display: none; }
+  .ascii-box { font-size: 9.5px; }
+  .arch-box { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 </head>
-<body class="bg-surface-lowest overflow-x-hidden">
+<body>
+  <div id="app"></div>
 
-<!-- NAV -->
-<nav class="fixed top-0 w-full z-50 bg-surface-low/80 backdrop-blur-xl border-b border-outline/20">
-  <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-    <div class="flex items-center gap-2">
-      <span class="text-xl font-mono font-bold text-white tracking-tighter">⚒ PrePrompt</span>
-    </div>
-    <div class="hidden md:flex items-center gap-8">
-      <a class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium" href="#how-it-works">How it works</a>
-      <a class="text-on-surface-variant hover:text-white ansition-colors text-sm font-medium" href="#demo">Demo</a>
-      <a class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium" href="#faq">FAQ</a>
-      <a class="text-on-surface-variant hover:text-white transition-colors text-sm font-medium" href="https://github.com/yashdeeptehlan/preprompt" target="_blank">GitHub</a>
-    </div>
-    <a href="https://preprompt.beehiiv.com/subscribe" target="_blank" class="bg-primary-container text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-purple-700 transition-all">
-      Join Beta
-    </a>
-  </div>
-</nav>
+  <script type="text/babel">
+    const { useState } = React;
 
-<main class="pt-24">
+    /* ── Logo ── */
+    function LogoMark({ size = 28, stroke = 'currentColor', fill = 'currentColor', accent = null }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 32 32" fill="none"
+             xmlns="http://www.w3.org/2000/svg"
+             style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
+          <rect x="3" y="6" width="7" height="7" fill={fill} />
+          <rect x="3" y="19" width="7" height="7" fill={accent || fill} opacity={accent ? 1 : 0.55} />
+          <path d="M15 9 L23 16 L15 23" stroke={stroke} strokeWidth="2.6"
+                strokeLinecap="square" strokeLinejoin="miter" fill="none" />
+        </svg>
+      );
+    }
 
-<!-- HERO -->
-<section class="relative px-6 py-20 lg:py-32 max-w-7xl mx-auto overflow-hidden">
-  <div class="text-center mb-16 relative z-10">
-    <div class="inline-flex items-center gap-2 bg-primary-container/10 border border-primary-container/30 text-primary text-xs font-mono px-4 py-2 rounded-full mb-8">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-      Open source · MIT licensed · Built in public
-    </div>
-    <h1 css="text-5xl lg:text-7xl font-headline font-bold text-white mb-6 leading-tight">
-      Every prompt you type,<br/><span class="text-primary">perfected.</span>
-    </h1>
-    <p class="text-on-surface-variant text-lg lg:text-xl max-w-2xl mx-auto mb-10">
-      Vague in. Sharp out. PrePrompt sits between you and your LLM — intercepts every prompt, scores complexity in &lt;1ms, and rewrites vague requests into precise specifications automatically, inside Claude Code and Cursor.
-    </p>
-    <div class="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-      <a href="https://preprompt.beehiiv.com/subscribe" target="_blank" class="bg-primary-container text-white px-8 py-4 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition-all shadow-xl shadow-primary-container/20">
-        Join the Beta →
-      </a>
-      <a href="https://github.com/yashdeeptehlan/preprompt" target="_blank" class="bg-surface-high/50 border border-outline/30 text-white px-8 py-4 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-surfhigh transition-all">
-        ⭐ Star on GitHub
-      </a>
-    </div>
-    <div class="flex flex-wrap justify-center gap-4 text-on-surface-variant/60 font-mono text-xs uppercase tracking-widest">
-      <span class="flex items-center gap-2 border border-outline/10 px-3 py-1 rounded-full bg-surface-low">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Claude Code
-      </span>
-      <span class="flex items-center gap-2 border border-outline/10 px-3 py-1 rounded-full bg-surface-low">
-        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Cursor
-      </span>
-      <span class="flex items-center gap-2 border border-outline/10 px-3 py-1 rounded-full bg-surface-low">
-        <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Python 3.11+
-      </span>
-      <span class="flex items-center gap-2 border border-outline/10 px-3 py-1 rounded-full bg-surface-low">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> ~$0.001/prompt
-      </span>
-    </div>
-  </div>
+    function Logo({ size = 28, showWord = true, accent = null, color = 'currentColor' }) {
+      return (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10, color,
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          fontWeight: 600, fontSize: Math.round(size * 0.62),
+          letterSpacing: '-0.01em', lineHeight: 1,
+        }}>
+          <LogoMark size={size} stroke={color} fill={color} accent={accent} />
+          {showWord && <span>preprompt</span>}
+        </span>
+      );
+    }
 
-  <!-- Before/After Terminal -->
-  <div class="relative max-w-4xl mx-auto">
-    <div class="absolute -inset-10 bg-primary-container/10 blur-[100px] rounded-full"></div>
-    <div class="relative bg-surface-lowest rounded-xl overflow-hidden border border-outline/20 purple-glow">
-      <div class="bg-surface-low px-4 py-3 flex items-center gap-2">
-        <div class="terminal-dot bg-red-500/70"></div>
-        <div class="terminal-dot bg-yellow-500/70"></div>
-        <div class="terminal-dot bg-green-500/70"></div>
-        <span class="ml-4 text-xs font-mono text-on-surface-variant/40">preprompt — active session</span>
-      </div>
-      <div class="p-6 md:p-8 font-mono text-sm leading-relaxed grid md:grid-cols-2 gap-8">
-        <div class="space-y-3">
-          <div class="text-on-surface-variant/40 text-xs uppercase font-bold tracking-widest">You typed</div>
-          <div class="text-red-300 bg-red-500/5 p-4 rounded border border-red-500/10 leading-relaxed">
-            write a middleware thatidates tokens and handles refresh
+    /* ── Copy button ── */
+    function CopyRow({ cmd, prefix = '$' }) {
+      const [copied, setCopied] = useState(false);
+      return (
+        <button className="copy-row"
+          onClick={() => {
+            navigator.clipboard?.writeText(cmd);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1400);
+          }}
+          aria-label="copy command">
+          <span className="copy-prefix">{prefix}</span>
+          <span className="copy-cmd">{cmd}</span>
+          <span className="copy-hint">{copied ? 'copied' : 'copy'}</span>
+        </button>
+      );
+    }
+
+    /* ── Section header ── */
+    function SectionHeader({ kicker, title, sub }) {
+      return (
+        <div className="sh">
+          <div className="sh-kicker">{kicker}</div>
+          <h2 className="sh-title">{title}</h2>
+          {sub && <p className="sh-sub">{sub}</p>}
+        </div>
+      );
+    }
+
+    /* ── Nav ── */
+    function Nav() {
+      return (
+        <nav className="nav">
+          <Logo size={26} />
+          <div className="nav-links">
+            <a href="#how">how it works</a>
+            <a href="#classifier">classifier</a>
+            <a href="#memory">memory</a>
+            <a href="#install">install</a>
+            <a href="https://github.com/yashdeeptehlan/preprompt" className="nav-gh">
+              <span className="nav-gh-dot" /> github
+            </a>
           </div>
-        </div>
-        <div class="space-y-3">
-          <div class="text-primary text-xs uppercase font-bold tracking-widest">PrePrompt sent</div>
-          <div class="text-green-300 bg-green-500/5 p-4 rounded border border-green-500/10 leading-relaxed">
-            Write a FastAPI middleware class that validates JWT Bearer tokens using python-jose with RS256. Extract token from Authorization header, verify signature and expiry, attach decoded payload to request.state.user, return HTTP 401 with structured error body on failure. Handle refresh by checking expiry within 5 minutes and issuing new token via /auth/refresh.
+        </nav>
+      );
+    }
+
+    /* ── ASCII annotation ── */
+    function AsciiAnnotation() {
+      return (
+        <div className="ascii-wrap">
+          <div className="ascii-chrome">
+            <span className="cd" /><span className="cd" /><span className="cd" />
+            <span className="ascii-chrome-title">claude-code · stderr</span>
           </div>
+          <pre className="ascii-box" aria-label="terminal annotation">{`╔═ preprompt  `}<span className="ansi-yellow">+58</span>{` ═══════════════════════════════════════════╗
+║ The rewritten prompt specifies the technical              ║
+║ implementation details, clarifies the workflow, and adds  ║
+║ concrete error scenarios relevant to FastAPI apps.        ║
+╠═══════════════════════════════════════════════════════════╣
+║ `}<span className="ansi-dim">ORIGINAL</span>{`  write a function that handles youtube oauth t… ║
+║ `}<span className="ansi-yellow">OPTIMIZED</span>{` Write a Python function for FastAPI that       ║
+║           handles YouTube OAuth 2.0 token refresh. The    ║
+║           function should: (1) detect expired credentials ║
+║           by checking the expiry timestamp, (2) use the   ║
+║           refresh token to obtain a new access token…     ║
+╚═══════════════════════════════════════════════════════════╝`}</pre>
         </div>
-      </div>
-      <div class="border-t border-outline/10 px-6 py-3 flex items-center gap-3 font-mono text-xs text-on-surface-variant/50">
-        <span class="text-primary-container">●</span> PrePrompt +65 · FastAPI context injected from memory · 2 requirements expanded to 6
-      </div>
-    </div>
-  </div>
-</section>
+      );
+    }
 
-<!-- INTERACTIVE DEMO -->
-<section class="py-24 px-6 max-w-7xl mx-auto" id="demo">
-  <div class="text-center mb-16">
-    <span class="text-primary-container font-mono text-sm font-bold tracking-widest uppercase mb-4 block">Try it live</span>
-    <h2 class="text-3xl lg:text-5xl font-headline font-bold text-white mb-4">See PrePrompt in action</h2>
-    <p class="text-on-surface-variant max-w-xl mx-auto">Type a vague prompt or click an example. Watch the classifier score it and Haiku rewrite it in real time.</p>
-  </div>
+    /* ── Hero ── */
+    function Hero() {
+      return (
+        <header className="hero">
+          <div className="hero-grid">
+            <div className="hero-left">
+              <div className="eyebrow">
+                <span className="dot" /> MCP server · runs locally · v0.1.0
+              </div>
+              <h1 className="hero-title">
+                Your prompts,<br />
+                <span className="hero-title-accent">battle-tested</span> before
+                the model sees them.
+              </h1>
+              <p className="hero-sub">
+                Preprompt sits between your keyboard and the LLM. It scores every
+                prompt with a heuristic classifier in under a millisecond, and
+                quietly rewrites the complex ones with Haiku. Simple prompts pass
+                through untouched. No noise, no latency, no API cost on the
+                small stuff.
+              </p>
 
-  <div class="max-w-5xl mx-auto">
-    <!-- Example chips -->
-    <div class="flex flex-wrap gap-2 mb-4 justify-center">
-      <button onclick="loadExample(0)" class="example-chip text-xs font-mono px-3 py-1.5 rounded-full border border-outline/30 text-on-surface-variant hover:border-primary-container hover:text-white transition-all">fix the bug</button>
-      <button onclick="loadExample(1)" class="example-chip text-xs font-mono px-3 py-1.5 rounded-full border border-outline/30 text-on-surface-variant hover:border-primary-container hover:text-white transition-all">add error handling</button>
-      <button onclick="loadExample(2)" class="example-chip text-xs font-mono px-3 py-1.5 rounded-full border border-outline/30 text-on-surface-variant hover:border-primary-container hover:text-white transition-all">write a middleware that validates jwt and handles refresh</button>
-      <button onclick="loadExample(3)" class="example-chip text-xs font-mono px-3 py-1.5 rounded-full border border-outline/30 text-on-surface-variant hover:border-primary-container hover:text-white transition-all">handle token refresh and manage expired credentials</button>
-      <button onclick="loadExample(4)" class="example-chip text-xs font-mono px-3 py-1.5 rounded-full border border-outline/30 text-on-surface-variant hover:border-primary-container hover:text-white transition-all">refactor this</button>
-    </div>
+              <div className="hero-ctas">
+                <CopyRow cmd="pip install preprompt" />
+                <a className="hero-docs" href="#how">
+                  <span>read the docs</span>
+                  <span className="arrow">→</span>
+                </a>
+              </div>
 
-    <!-- Terminal window -->
-    <div class="bg-surface-lowest rounded-xl border border-outline/20 overflow-hidden purple-glow">
-      <div class="bg-surface-low px-4 py-3 flex items-center gap-2">
-        <div class="terminal-dot bg-red-500/70"></div>
-        <div class="terminal-dot bg-yellow-500/70"></div>
-        <div class="terminal-dot bg-green-500/70"></div>
-        <span class="ml-4 text-xs font-mono text-on-surface-variant/40">preprompt — demo</span>
-      </div>
+              <div className="hero-meta">
+                <div><span className="hero-meta-k">latency</span><span className="hero-meta-v">&lt; 1ms</span></div>
+                <div><span className="hero-meta-k">api cost</span><span className="hero-meta-v">~$0.60 / mo</span></div>
+                <div><span className="hero-meta-k">deps</span><span className="hero-meta-v">sqlite, haiku</span></div>
+                <div><span className="hero-meta-k">license</span><span className="hero-meta-v">MIT</span></div>
+              </div>
+            </div>
 
-      <div class="grid md:grid-cols-3 gap-0 divide-x divide-outline/20 min-h-80">
-
-        <!-- Panel A: Input -->
-        <div class="p-5 space-y-3">
-          <div class="text-xs font-mono text-on-surface-variant/40 uppercase tracking-widest">Your prompt</div>
-          <textarea id="demo-input" class="w-full bg-surface-low border border-outline/20 rounded-lg p-3 text-sm font-mono text-white placeholder:text-on-surface-variant/30 resize-none focus:outline-none focus:border-primary-container/50 h-32" placeholder="Type a vague prompt...">write a middleware that validates jwt and handles refresh</textarea>
-          <button onclick="runDemo()" class="w-full bg-primary-container text-white py-2.5 rounded-lg font-bold text-sm hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
-            ⚡ Forge it
-          </button>
-        </div>
-
-        <!-- Panel B: Classifier -->
-        <div class="p-5 space-y-3">
-          <div class="text-xs font-mono text-on-surface-variant/40 uppercase tracking-widest">Classifier analysis</div>
-          <div id="classifier-output" class="space-y-2">
-            <div class="text-xs text-on-surface-variant/40 font-mono">Click "Forge it" to analyze...</div>
+            <div className="hero-right">
+              <AsciiAnnotation />
+            </div>
           </div>
-        </div>
+        </header>
+      );
+    }
 
-        <!-- Panel C: Output -->
-        <div class="p-5 space-y-3">
-          <div class="text-xs font-mono text-on-surface-variant/40 uppercase tracking-widest">Optimized prompt</div>
-          <div id="forge-output" class="text-xs font-mono text-on-surface-variant/60">Output appears here...</div>
-          <button id="copy-btn" onclick="copyOutput()" class="hidden w-full bg-surface-high border border-outline/30 text-white py-2 rounded-lg font-mono text-xs hover:bg-surface-highest transition-all copy-btn">
-            Copy optimized prompt
-          </button>
-        </div>
-      </div>
-    </div>
+    /* ── Before / After ── */
+    const EXAMPLES = [
+      {
+        before: "write a function that handles youtube oauth token refresh and manages expired credentials with error handling",
+        after: "Write a Python function for FastAPI that handles YouTube OAuth 2.0 token refresh. The function should: (1) detect expired credentials by checking the expiry timestamp, (2) use the refresh token to obtain a new access token via the YouTube API, (3) persist the new credentials, and (4) include error handling for invalid refresh tokens, network failures, and API errors with appropriate logging.",
+        score: 58,
+        reason: "Ambiguous verbs · missing output format · multi-requirement density",
+      },
+      {
+        before: "refactor this to handle edge cases and manage errors properly",
+        after: "Refactor the selected code to handle the following edge cases: null/undefined inputs, empty collections, boundary values, and network timeouts. Wrap I/O in try/except with specific exception types. Log recoverable errors at WARNING, unrecoverable at ERROR. Preserve the existing public API; add tests for each edge case.",
+        score: 65,
+        reason: "Vague refactor · no scope boundary · no error taxonomy",
+      },
+      {
+        before: "implement a rate limiter that tracks requests, manages quotas and handles bursts",
+        after: "Implement a token-bucket rate limiter with: (1) per-key buckets stored in Redis, (2) configurable capacity + refill rate, (3) atomic check-and-decrement via Lua script to avoid races, (4) burst tolerance of 2× capacity for <5s windows, (5) 429 response with Retry-After header when exhausted, (6) metrics hook for rate and rejection count.",
+        score: 70,
+        reason: "Multi-requirement · infra unspecified · no response contract",
+      },
+      {
+        before: "what is jwt",
+        after: null,
+        score: -35,
+        reason: "Lookup question · short · passes through unchanged",
+      },
+    ];
 
-    <!-- Install command -->
-    <div class="mt-8 bg-surface-low rounded-xl border border-outline/20 p-5">
-      <div class="text-xs font-mono text-on-surface-variant/40 uppercase tracking-widest mb-3">Install</div>
+    function BeforeAfter() {
+      const [idx, setIdx] = useState(0);
+      const ex = EXAMPLES[idx];
+      const intercepted = ex.after != null;
 
-      <div class="mb-4">
-        <div class="text-xs font-mono text-primary mb-2 uppercase tracking-widest">Option 1 — pip (recommended)</div>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-            <code class="text-sm font-mono text-green-300">pip install preprompt</code>
-            <button onclick="copyCmd(this, 'pip install preprompt')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 copy-btn">copy</button>
+      return (
+        <section className="ba" id="transform">
+          <SectionHeader
+            kicker="02  the transform"
+            title="Watch a vague prompt become a specification."
+            sub="Real examples from the classifier. Scores under 38 pass through untouched — preprompt is quiet unless it has something to say."
+          />
+
+          <div className="ba-picker">
+            {EXAMPLES.map((e, i) => (
+              <button key={i} className={'ba-chip' + (i === idx ? ' on' : '')} onClick={() => setIdx(i)}>
+                <span className="ba-chip-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="ba-chip-label">{e.before.slice(0, 36)}…</span>
+                <span className={'ba-chip-score ' + (e.score >= 38 ? 'pos' : 'neg')}>
+                  {e.score > 0 ? '+' : ''}{e.score}
+                </span>
+              </button>
+            ))}
           </div>
-          <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-            <code class="text-sm font-mono text-green-300">python scripts/setup_global_hook.py</code>
-            <button onclick="copyCmd(this, 'python scripts/setup_global_hook.py')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 copy-btn">copy</button>
+
+          <div className="ba-panes">
+            <div className="ba-pane">
+              <div className="ba-pane-head">
+                <span className="ba-pane-tag">BEFORE</span>
+                <span className="ba-pane-meta">typed by you</span>
+              </div>
+              <p className="ba-pane-text">{ex.before}</p>
+            </div>
+
+            <div className="ba-arrow" aria-hidden>
+              <div className="ba-arrow-line" />
+              <div className="ba-arrow-badge">
+                <span className="ba-arrow-num">{ex.score > 0 ? '+' : ''}{ex.score}</span>
+                <span className="ba-arrow-label">{intercepted ? 'intercept' : 'pass-through'}</span>
+              </div>
+              <div className="ba-arrow-line" />
+            </div>
+
+            <div className={'ba-pane ba-pane-after' + (intercepted ? ' intercepted' : ' passthrough')}>
+              <div className="ba-pane-head">
+                <span className="ba-pane-tag alt">{intercepted ? 'OPTIMIZED' : 'UNCHANGED'}</span>
+                <span className="ba-pane-meta">{intercepted ? 'via haiku' : 'no api call'}</span>
+              </div>
+              {intercepted ? (
+                <p className="ba-pane-text ba-after-text">{ex.after}</p>
+              ) : (
+                <p className="ba-pane-text ba-passthrough">
+                  <span className="ba-passthrough-line">// prompt sent as-is — simple lookup, sub-ms classification.</span>
+                  <br />{ex.before}
+                </p>
+              )}
+            </div>
           </div>
-          <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-            <code class="text-sm font-mono text-green-300">Restart Claude Code or Cursor — done.</code>
-            <span class="text-xs text-emerald-400 ml-4">✓ active</span>
+
+          <div className="ba-reason">
+            <span className="ba-reason-k">why</span>
+            <span className="ba-reason-v">{ex.reason}</span>
           </div>
-        </div>
-      </div>
+        </section>
+      );
+    }
 
-      <div>
-        <div class="text-xs font-mono text-on-surface-variant/30 mb-2 uppercase tracking-widest">Option 2 — from source</div>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-            <code class="text-sm font-mono text-on-surface-variant/50 min-w-0 break-all">git clone https://github.com/yashdeeptehlan/preprompt</code>
-            <button onclick="copyCmd(this, 'git clone https://github.com/yashdeeptehlan/preprompt')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 shrink-0 copy-btn">copy</button>
+    /* ── How it works ── */
+    function HowItWorks() {
+      const steps = [
+        {
+          n: '01', t: 'Intercept',
+          d: 'A Claude Code UserPromptSubmit hook catches every prompt the moment you hit enter. No IDE plugin, no cloud round-trip — the hook is a local Python file resolved by absolute path.',
+          code: `# .claude/hooks/pre_prompt.py\non UserPromptSubmit:\n  prompt = stdin.read()\n  score  = classify_prompt(prompt, …)`,
+        },
+        {
+          n: '02', t: 'Classify',
+          d: 'Pure heuristics — no API call. Ambiguity verbs, multi-requirement density, turn depth, missing-format signals. Threshold 38. Simple prompts, lookups, and short acks score low and skip.',
+          code: `score = heuristic(prompt)\nif score < 38:\n    return prompt           # pass through`,
+        },
+        {
+          n: '03', t: 'Optimize',
+          d: 'Complex prompts are sent to claude-haiku-4-5 with your learned stack context injected. The rewrite is returned in under a second. Cost per intercept: ~$0.001.',
+          code: `rewritten = haiku.rewrite(\n    prompt,\n    stack=load_memory(),\n)`,
+        },
+        {
+          n: '04', t: 'Log & learn',
+          d: 'The hook writes a JSON sidecar to ~/.preprompt/pending/. The MCP server flushes it into SQLite (WAL) on the next tool call, updating stack_memory with a compounding confidence score.',
+          code: `# sidecar → SQLite WAL\nflush_pending_hook_events()\nupsert_stack_memory(key, value)`,
+        },
+      ];
+
+      return (
+        <section className="how" id="how">
+          <SectionHeader
+            kicker="03  how it works"
+            title="Four quiet steps between your keyboard and the model."
+          />
+          <div className="how-grid">
+            {steps.map((s) => (
+              <div className="how-step" key={s.n}>
+                <div className="how-step-head">
+                  <span className="how-step-n">{s.n}</span>
+                  <span className="how-step-t">{s.t}</span>
+                </div>
+                <p className="how-step-d">{s.d}</p>
+                <pre className="how-step-code">{s.code}</pre>
+              </div>
+            ))}
           </div>
-          <div class="flex items-center justify-between bg-surface-lowest rounded-lg px-4 py-3">
-            <code class="text-sm font-mono text-on-surface-variant/50 min-w-0 break-all">cd preprompt && ./scripts/install.sh</code>
-            <button onclick="copyCmd(this, 'cd preprompt && ./scripts/install.sh')" class="text-xs text-on-surface-variant/40 hover:text-white transition-colors ml-4 shrink-0 copy-btn">copy</button>
+        </section>
+      );
+    }
+
+    /* ── Classifier table ── */
+    const CLASSIFIER_ROWS = [
+      { score: 48,  hit: true,  prompt: "write me a middleware that validates tokens and handles refresh" },
+      { score: -35, hit: false, prompt: "what is jwt" },
+      { score: -45, hit: false, prompt: "thanks" },
+      { score: 65,  hit: true,  prompt: "refactor this to handle edge cases and manage errors properly" },
+      { score: -20, hit: false, prompt: "add tests" },
+      { score: 70,  hit: true,  prompt: "implement a rate limiter that tracks requests, manages quotas, handles bursts" },
+      { score: 41,  hit: true,  prompt: "build a cli that parses yaml configs and validates against a schema" },
+      { score: -12, hit: false, prompt: "format this file" },
+    ];
+
+    function ClassifierTable() {
+      return (
+        <section className="cls" id="classifier">
+          <SectionHeader
+            kicker="04  the classifier"
+            title="Zero API calls. Sub-millisecond. Transparent."
+            sub="The scorer runs on every prompt in under 1ms. It's a small, tuned heuristic you can read in 60 lines — not a neural classifier, not a cloud call."
+          />
+          <div className="cls-table" role="table">
+            <div className="cls-row cls-head" role="row">
+              <span>score</span>
+              <span>intercept</span>
+              <span>prompt</span>
+            </div>
+            {CLASSIFIER_ROWS.map((r, i) => (
+              <div className="cls-row" role="row" key={i}>
+                <span className={'cls-score ' + (r.hit ? 'pos' : 'neg')}>
+                  {r.score > 0 ? '+' : ''}{r.score}
+                </span>
+                <span className="cls-hit">
+                  {r.hit
+                    ? <><span className="cls-hit-dot on" /> yes</>
+                    : <><span className="cls-hit-dot" /> no</>}
+                </span>
+                <span className="cls-prompt">{r.prompt}</span>
+              </div>
+            ))}
+            <div className="cls-foot">
+              threshold = 38 · multi-requirement weight = 12/hit · negative signals subtract
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
+      );
+    }
 
-<!-- HOW IT WORKS -->
-<section class="py-24 px-6 bg-surface-lowest" id="how-it-works">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-20">
-      <span class="text-primary-container font-mono text-sm font-bold tracking-widest uppercase mb-4 block">How it works</span>
-      <h2 class="text-3xl lg:text-5xl font-headline font-bold text-white">Install once. Works everywhere.<br/>Gets smarter.</h2>
-    </div>
-    <div class="relative grid md:grid-cols-3 gap-12">
-      <div class="hidden md:block absolute top-12 left-0 w-full h-px bg-gradient-to-r from-transparent via-outline/30 to-transparent"></div>
-      <div class="flex flex-col items-center md:items-start relative z-10">
-        <div class="w-24 h-24 bg-surface-high rounded-2xl flex items-center justify-center mb-8 border border-outline/20 shadow-2xl">
-          <span class="text-3xl">🪝</span>
-        </div>
-        <h3 class="text-xl font-headline font-bold text-white mb-4">INTERCEPT</h3>
-        <p class="text-on-surface-variant text-center md:text-left">Registers as a global UserPromptSubmit hook in Claude Code and an MCP server in Cursor. Every prompt passes through before reaching the LLM.</p>
-      </div>
-      <div class="flex flex-col items-center md:items-start relative z-10">
-        <div class="w-24 h-24 bg-surface-high rounded-2xl flex items-center justify-center mb-8 border border-outline/20 shadow-2xl">
-          <span class="text-3xl">⚡</span>
-        </div>
-        <h3 class="text-xl font-headline font-bold text-white mb-4">CLASSIFY</h3>
-        <p class="text-on-surface-variant text-center md:text-left">Pure Python heuristics score every prompt 0–100 in under 1ms. No API call. Simple prompts pass through untouched. Score ≥38 triggers optimization.</p>
-      </div>
-      <div class="flex flex-col items-center md:items-start relative z-10">
-        <div class="w-24 h-24 bg-surface-high rounded-2xl flex items-center justify-center mb-8 border border-outline/20 shadow-2xl">
-          <span class="text-3xl">✨</span>
-        </div>
-        <h3 class="text-xl font-headline font-bold text-white mb-4">OPTIMIZE</h3>
-        <p class="text-on-surface-variant text-center md:text-left">Claude Haiku rewrites flagged prompts with your full stack context injected — framework, language, style preferences learned from past sessions.</p>
-      </div>
-    </div>
-  </div>
-</section>
+    /* ── Stack memory ── */
+    function StackMemory() {
+      const rows = [
+        { k: 'language',  v: 'python',     c: 0.92, seen: 47 },
+        { k: 'framework', v: 'fastapi',    c: 0.88, seen: 31 },
+        { k: 'database',  v: 'postgresql', c: 0.74, seen: 12 },
+        { k: 'testing',   v: 'pytest',     c: 0.61, seen: 9  },
+        { k: 'style',     v: 'type-hints', c: 0.44, seen: 6  },
+      ];
 
-<!-- STACK MEMORY -->
-<section class="py-24 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-  <div>
-    <span class="text-primary-container font-mono text-sm font-bold tracking-widest uppercase mb-4 block">Stack Memory</span>
-    <h2 class="text-3xl lg:text-5xl font-headline font-bold text-white mb-6 leading-tight">It learns your stack. Permanently.</h2>
-    <p class="text-on-surface-variant text-lg mb-8">After a few sessions, PrePrompt knows you use FastAPI, prefer typed code, and work with SQLite. It injects that context into every optimization — without you saying a word.</p>
-    <ul class="space-y-4 text-on-surface-variant">
-      <li class="flex items-center gap-3"><span class="text-emerald-400">✓</span> Confidence compounds with each prompt</li>
-      <li class="flex items-center gap-3"><span class="text-emerald-400">✓</span> Resets automatically when you switch stacks</li>
-      <li class="flex items-center gap-3"><span class="text-emerald-400">✓</span> Stored locally — never leaves your machine</li>
-    </ul>
-  </div>
-  <div class="bg-surface-low rounded-xl overflow-hidden border border-outline/20">
-    <div class="bg-surface-high px-4 py-2 border-b border-outline/10 font-mono text-xs text-on-surface-variant/60 flex items-center gap-2">
-      <div class="terminal-dot bg-red-500/70"></div>
-      <div class="terminal-dot bg-yellow-500/70"></div>
-      <div class="terminal-dot bg-green-500/70"></div>
-      <span class="ml-2">$ preprompt-memory</span>
-    </div>
-    <div class="p-6 font-mono text-sm">
-      <div class="text-on-surface-variant/40 mb-4">PrePrompt — learned stack memory</div>
-      <div class="text-on-surface-variant/20 mb-4">──────────────────────────────────────────────</div>
-      <div class="space-y-3">
-        <div class="flex justify-between"><span class="text-on-surface-variant/60">framework</span><span class="text-white">fastapi</span><span class="text-primary">0.92</span><span class="text-on-surface-variant/40">(47x)</span></div>
-        <div class="flex justify-between"><span class="text-on-surface-variant/60">language</span><span class="text-white">python</span><span class="text-primary">0.88</span><span class="text-on-surface-variant/40">(31x)</span></div>
-        <div class="flex justify-between"><span class="text-on-surface-variant/60">database</span><span class="text-white">sqlite</span><span class="text-primary">0.80</span><span class="text-on-surface-variant/40">(12x)</span></div>
-        <div class="flex justify-between"><span class="text-on-surface-variant/60">style</span><span class="text-white">typed</span><span class="text-primary">0.75</span><span class="text-on-surface-variant/40">(8x)</span></div>
-      </div>
-      <div class="text-on-surface-variant/20 mt-4 mb-3">──────────────────────────────────────────────</div>
-      <div class="text-primary-container animate-pulse text-xs">Tip: more prompts = better optimization context</div>
-    </div>
-  </div>
-</section>
+      return (
+        <section className="mem" id="memory">
+          <SectionHeader
+            kicker="05  stack memory"
+            title="It learns your stack as you work."
+            sub="After a few sessions preprompt knows your language, framework, and style preferences — and injects them into every optimization automatically."
+          />
+          <div className="mem-panes">
+            <div className="mem-term">
+              <div className="mem-term-head">
+                <span className="cd" /><span className="cd" /><span className="cd" />
+                <span className="mem-term-title">~ preprompt-memory</span>
+              </div>
+              <div className="mem-term-body">
+                <div className="mem-prompt">preprompt-memory</div>
+                <div className="mem-title">
+                  <span className="mem-title-label"> preprompt — learned stack</span>
+                </div>
+                <div className="mem-rule">──────────────────────────────────────────────────────</div>
+                {rows.map((r) => (
+                  <div className="mem-row" key={r.k}>
+                    <span className="mem-k">{r.k}</span>
+                    <span className="mem-v">{r.v}</span>
+                    <span className="mem-c">confidence: {r.c.toFixed(2)}</span>
+                    <span className="mem-s">(seen {r.seen}×)</span>
+                    <div className="mem-bar" style={{ width: `${r.c * 100}%` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-<!-- DUMMY SESSION -->
-<section class="py-24 px-6 max-w-7xl mx-auto">
-  <div class="text-center mb-16">
-    <span class="text-primary-container font-mono text-sm font-bold tracking-widest uppercase mb-4 block">See a full session</span>
-    <h2 class="text-3xl lg:text-5xl font-headline font-bold text-white mb-4">Watch PrePrompt work across a real dev session</h2>
-    <p class="text-on-surface-variant max-w-xl mx-auto">5 turns. PrePrompt intercepts only when it matters.</p>
-  </div>
-
-  <div class="max-w-3xl mx-auto">
-    <div class="bg-surface-lowest rounded-xl border border-outline/20 overflow-hidden">
-      <div class="bg-surface-low px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="terminal-dot bg-red-500/70"></div>
-          <div class="terminal-dot bg-yellow-500/70"></div>
-          <div class="terminal-dot bg-green-500/70"></div>
-          <span class="ml-4 text-xs font-mono text-on-surface-variant/40">session replay</span>
-        </div>
-        <button onclick="replaySession()" class="text-xs font-mono text-primary-container hover:text-primary transition-colors">↺ replay</button>
-      </div>
-      <div id="session-turns" class="p-6 space-y-4 font-mono text-sm min-h-64">
-        <div class="text-on-surface-variant/30 text-xs">Click replay to start...</div>
-      </div>
-      <div class="border-t border-outline/10 px-6 py-3 font-mono text-xs text-on-surface-variant/40" id="session-summary"></div>
-    </div>
-    <div class="mt-4 flex gap-3 justify-center">
-      <button onclick="replaySession()" class="bg-surface-low border border-outline/30 text-white px-6 py-2.5 rounded-lg font-mono text-sm hover:bg-surface-high transition-all">▶ Play session</button>
-    </div>
-  </div>
-</section>
-
-<!-- STATS -->
-<section class="py-12 border-y border-outline/10 bg-surface-lowest/50">
-  <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-    <div class="text-center"><div class="text-3xl font-mono font-bold text-white mb-1">&lt; 1ms</div><div class="text-xs text-on-surface-variant uppercase tracking-widest">Classifier latency</div></div>
-    <div class="text-center"><div class="text-3xl font-mono font-bold text-white mb-1">~$0.001</div><div class="text-xs text-on-surface-variant uppercase tracking-widest">Per optimization</div></div>
-    <div class="text-center"><div class="text-3xl font-mono font-bold text-white mb-1">0</div><div class="text-xs text-on-surface-variant uppercase tracking-widest">Lock errors (SQLite WAL)</div></div>
-    <div class="text-center"><div class="text-3xl font-mono font-bold text-white mb-1">MIT</div><div class="text-xs text-on-surface-variant uppercase tracking-widest">License</div></div>
-  </div>
-</section>
-
-<!-- OPEN SOURCE -->
-<section class="py-24 px-6 max-w-7xl mx-auto">
-  <div class="text-center mb-16">
-    <h2 class="text-4xl lg:text-5xl font-headline font-bold text-white mb-6">Built in the open.</h2>
-    <p class="text-on-surface-variant max-w-2xl mx-auto">PrePrompt is MIT licensed. The classifier, optimizer, memory layer, and IDE integrations are all open source. Come build with us.</p>
-  </div>
-  <div class="flex flex-wrap justify-center gap-4 mb-16">
-    <a href="https://github.com/yashdeeptehlan/preprompt" target="_blank" class="bg-primary-container text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-700 transition-all">⭐ Star on GitHub</a>
-    <a href="https://github.com/yashdeeptehlan/preprompt/fork" target="_blank" class="bg-surface-high border border-outline/30 text-white px-6 py-3 rounded-lg font-bold hover:bg-surface-highest transition-all">🍴 Fork</a>
-    <a href="https://github.com/yashdeeptehlan/preprompt/issues" target="_blank" class="bg-surface-high border border-outline/30 text-white px-6 py-3 rounded-lg font-bold hover:bg-surface-highest transition-all">🐛 Issues</a>
-  </div>
-  <div class="grid md:grid-cols-3 gap-8">
-    <div class="p-6 bg-surface-low rounded-xl border border-outline/10 hover:border-primary-container/30 transition-all">
-      <h4 class="font-bold text-white mb-2">Improve the classifier</h4>
-      <p class="text-sm text-on-surface-variant mb-4">Tune scoring weights and signals for different languages and domains.</p>
-      <span class="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">Help Wanted</span>
-    </div>
-    <div class="p-6 bg-surface-low rounded-xl border border-outline/10 hover:border-primary-container/30 transition-all">
-      <h4 class="font-bold text-white mb-2">Add IDE support</h4>
-      <p class="text-sm text-on-surface-variant mb-4">Windsurf, Zed, VS Code integrations — each needs a rules file and testing.</p>
-      <span class="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">Pending</span>
-    </div>
-    <div class="p-6 bg-surface-low rounded-xl border border-outline/10 hover:border-primary-container/30 transition-all">
-      <h4 class="font-bold text-white mb-2">Build the dashboard</h4>
-      <p class="text-sm text-on-surface-variant mb-4">Real-time visualization of optimization history, cost savings, stack memory.</p>
-      <span class="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">RFC</span>
-    </div>
-  </div>
-</section>
-
-<!-- BETA SIGNUP -->
-<section class="px-6 py-20 max-w-5xl mx-auto" id="beta">
-  <div class="bg-gradient-to-br from-primary-container to-purple-900 rounded-3xl p-12 lg:p-20 text-center relative overflow-hidden">
-    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 20px 20px;"></div>
-    <h2 class="text-3xl lg:text-5xl font-headline font-bold text-white mb-6 relative z-10">Get early access.</h2>
-    <p class="text-purple-200 text-lg mb-10 max-w-xl mx-auto relative z-10">Free forever for open source. Shape the roadmap. Join developers already using PrePrompt in their daily workflow.</p>
-    <div class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto relative z-10">
-      <input
-        id="email-input"
-        class="flex-grow bg-white/10 border border-white/20 rounded-xl px-6 py-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-        placeholder="Enter your email"
-        type="email"
-      />
-      <a
-        id="beta-join-btn"
-        href="https://preprompt.beehiiv.com/subscribe"
-        target="_blank"
-        onclick="appendEmail()"
-        class="bg-white text-primary-container px-8 py-4 rounded-xl font-bold hover:bg-purple-50 transition-all text-center cursor-pointer"
-      >
-        Join Beta
-      </a>
-    </div>
-    <div class="flex flex-wrap justify-center gap-3 mt-6 relative z-10">
-      <span class="text-xs text-purple-200 border border-white/10 px-3 py-1 rounded-full">Free beta access</span>
-      <span class="text-xs text-purple-200 border border-white/10 px-3 py-1 rounded-full">Shape the roadmap</span>
-      <span class="text-xs text-purple-200 border border-white/10 px-3 py-1 rounded-full">No spam</span>
-    </div>
-  </div>
-</section>
-
-<!-- FAQ -->
-<section class="py-24 px-6 max-w-3xl mx-auto" id="faq">
-  <h2 class="text-3xl font-headline font-bold text-white mb-12 text-center">Frequently Asked Questions</h2>
-  <div class="space-y-4">
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        Is it free? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed">The core MCP server is 100% open source and free forever. Enterprise features — team memory, audit logs, hosted dashboard — will be paid.</div>
-    </details>
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        Does it send my prompts anywhere? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed">No. Everything runs locally. The only external call is to Anthropic's API for optimization — the same call your IDE makes anyway. Your data never leaves your machine.</div>
-    </details>
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        Which IDEs are supported? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed">Claude Code and Cursor work fully automatically. Any MCP-compatible IDE (Windsurf, Zed) works with manual setup. More coming in Phase 7.</div>
-    </details>
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        How much does the API cost? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed">~$0.001 per optimized prompt. Most prompts are never sent — the classifier skips simple ones. Typical usage: $1–3/month.</div>
-    </details>
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        Will it slow down my workflow? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed">No. The classifier runs in under 1ms locally using pure Python heuristics. The API call adds ~1–2 seconds on complex prompts only — less time than you'd spend rewriting.</div>
-    </details>
-    <details class="group bg-surface-low border border-outline/10 rounded-xl overflow-hidden">
-      <summary class="p-6 text-white font-bold cursor-pointer flex justify-between items-center list-none">
-        How do I install it? <span class="group-open:rotate-180 transition-transform text-lg">▾</span>
-      </summary>
-      <div class="px-6 pb-6 text-on-surface-variant leading-relaxed font-mono text-sm">
-        <span class="text-green-300">pip install preprompt</span><br/>
-        <span class="text-green-300">python scripts/setup_global_hook.py</span><br/>
-        <span class="text-emerald-400"># Restart Claude Code or Cursor — done.</span><br/><br/>
-        Or from source:<br/>
-        git clone https://github.com/yashdeeptehlan/preprompt<br/>
-        cd preprompt &amp;&amp; ./scripts/install.sh
-      </div>
-    </details>
-  </div>
-</section>
-
-</main>
-
-<!-- FOOTER -->
-<footer class="bg-surface-lowest border-t border-outline/15">
-  <div class="flex flex-col md:flex-row justify-between items-center w-full px-8 py-12 max-w-7xl mx-auto">
-    <div class="flex flex-col items-center md:items-start mb-8 md:mb-0">
-      <span class="text-lg font-mono font-bold text-white mb-2">⚒ PrePrompt</span>
-      <p class="text-on-surface-variant text-sm">© 2026 Yashdeep Tehlan. MIT License.</p>
-      <p class="text-on-surface-variant/40 text-xs mt-1">Not affiliated with Anthropic.</p>
-    </div>
-    <div class="flex gap-8">
-      <a class="text-on-surface-variant hover:text-primary-container transition-colors font-mono text-sm" href="https://github.com/yashdeeptehlan/preprompt" target="_blank">GitHub</a>
-      <a class="text-on-surface-variant hover:text-primary-container transition-colors font-mono text-sm" href="#">Docs</a>
-      <a class="text-on-surface-variant hover:text-primary-container transition-colors font-mono text-sm" href="#">Twitter</a>
-      <a class="text-on-surface-variant hover:text-primary-container transition-colors font-mono text-sm" href="mailto:tech@thedare.io">Email</a>
-    </div>
-  </div>
-</footer>
-
-<script>
-const EXAMPLES = [
-  {
-    prompt: "fix the bug",
-    score: 12,
-    intercepted: false,
-    signals: [
-      { label: "Ambiguity markers", pts: 0, max: 25 },
-      { label: "Multi-requirement", pts: 0, max: 30 },
-      { label: "Code task", pts: 0, max: 15 },
-      { label: "Short prompt penalty", pts: -20, max: 20 },
-      { label: "Conversational opener", pts: 0, max: 25 },
-    ],
-    optimized: null
-  },
-  {
-    prompt: "add error handling",
-    score: 18,
-    intercepted: false,
-    signals: [
-      { label: "Ambiguity markers", pts: 10, max: 25 },
-      { label: "Multi-requirement", pts: 0, max: 30 },
-      { label: "Code task detected", pts: 15, max: 15 },
-      { label: "Short prompt penalty", pts: -7, max: 20 },
-    ],
-    optimized: null
-  },
-  {
-    prompt: "write a middleware that validates jwt and handles refresh",
-    score: 65,
-    intercepted: true,
-    signals: [
-      { label: "Ambiguity markers (handles)", pts: 25, max: 25 },
-      { label: "Multi-requirement (and)", pts: 24, max: 30 },
-      { label: "Code task detected", pts: 15, max: 15 },
-      { label: "Turn depth bonus", pts: 8, max: 15 },
-      { label: "No format specified", pts: 15, max: 15 },
-    ],
-    optimized: "Write a FastAPI middleware class that validates JWT Bearer tokens using python-jose with RS256. Extract token from the Authorization header, verify signature and expiry, attach decoded payload to request.state.user, and return HTTP 401 with a structured error body on any validation failure. Handle refresh by checking expiry within 5 minutes and issuing a new token via /auth/refresh."
-  },
-  {
-    prompt: "handle token refresh and manage expired credentials with proper error handling",
-    score: 58,
-    intercepted: true,
-    signals: [
-      { label: "Ambiguity markers (handle, manage)", pts: 25, max: 25 },
-      { label: "Multi-requirement density", pts: 18, max: 30 },
-      { label: "Code task detected", pts: 15, max: 15 },
-      { label: "No format specified", pts: 15, max: 15 },
-      { label: "Short prompt penalty", pts: -15, max: 20 },
-    ],
-    optimized: "Write a Python function for FastAPI that refreshes YouTube OAuth2 tokens using the google-auth library. Detect expired credentials, automatically refresh using the refresh token, cache the new access token, and handle errors including invalid refresh tokens, network failures, and quota exceeded scenarios. Return the valid access token or raise a custom exception with the failure reason."
-  },
-  {
-    prompt: "refactor this",
-    score: 22,
-    intercepted: false,
-    signals: [
-      { label: "Ambiguity markers (refactor)", pts: 25, max: 25 },
-      { label: "Multi-requirement", pts: 0, max: 30 },
-      { label: "Short prompt penalty", pts: -20, max: 20 },
-      { label: "No task context", pts: 0, max: 15 },
-    ],
-    optimized: null
-  }
-];
-
-let currentExample = EXAMPLES[2];
-
-function loadExample(idx) {
-  currentExample = EXAMPLES[idx];
-  document.getElementById('demo-input').value = currentExample.prompt;
-  document.getElementById('classifier-output').innerHTML = '<div class="text-xs text-on-surface-variant/40 font-mono">Click "Forge it" to analyze...</div>';
-  document.getElementById('forge-output').textContent = 'Output appears here...';
-  document.getElementById('forge-output').className = 'text-xs font-mono text-on-surface-variant/60';
-  document.getElementById('copy-btn').classList.add('hidden');
-}
-
-function runDemo() {
-  const prompt = document.getElementById('demo-input').value.trim();
-  if (!prompt) return;
-
-  const match = EXAMPLES.find(e => e.prompt === prompt) || currentExample;
-
-  const classEl = document.getElementById('classifier-output');
-  classEl.innerHTML = '<div class="text-xs font-mono text-primary animate-pulse">Analyzing prompt...</div>';
-
-  setTimeout(() => {
-    let html = '';
-    match.signals.forEach((s, i) => {
-      const isNeg = s.pts < 0;
-      const pct = Math.abs(s.pts) / s.max * 100;
-      html += `<div class="space-y-1 opacity-0 signal-row" style="animation: fadeIn 0.3s ease ${i * 0.12}s forwards">
-        <div class="flex justify-between text-xs">
-          <span class="text-on-surface-variant/60">${s.label}</span>
-          <span class="${isNeg ? 'text-red-400' : 'text-emerald-400'} font-mono">${isNeg ? '' : '+'}${s.pts}</span>
-        </div>
-        <div class="h-1 bg-surface-highest rounded-full overflow-hidden">
-          <div class="h-full rounded-full ${isNeg ? 'bg-red-500/50' : 'bg-primary-container'}" style="width:0%;transition:width 0.5s ease ${i*0.12+0.2}s" data-width="${pct}"></div>
-        </div>
-      </div>`;
-    });
-
-    const verdict = match.intercepted
-      ? `<div class="mt-3 pt-3 border-t border-outline/20 font-mono text-xs"><span class="text-white font-bold">Total: ${match.score}</span> <span class="text-primary-container ml-2">✓ INTERCEPTED</span></div>`
-      : `<div class="mt-3 pt-3 border-t border-outline/20 font-mono text-xs"><span class="text-white font-bold">Total: ${match.score}</span> <span class="text-on-surface-variant/40 ml-2">below threshold — passed through</span></div>`;
-
-    classEl.innerHTML = html + verdict;
-
-    document.querySelectorAll('[data-width]').forEach(el => {
-      setTimeout(() => { el.style.width = el.dataset.width + '%'; }, 50);
-    });
-
-    setTimeout(() => {
-      const outEl = document.getElementById('forge-output');
-      const copyBtn = document.getElementById('copy-btn');
-
-      if (match.intercepted && match.optimized) {
-        outEl.className = 'text-xs font-mono text-green-300 leading-relaxed';
-        typeText(outEl, match.optimized, 15);
-        copyBtn.classList.remove('hidden');
-      } else {
-        outEl.className = 'text-xs font-mono text-on-surface-variant/40';
-        outEl.textContent = `── score ${match.score} · below threshold 38 · passed through unchanged ──`;
-        copyBtn.classList.add('hidden');
-      }
-    }, match.signals.length * 120 + 400);
-
-  }, 600);
-}
-
-function typeText(el, text, speed) {
-  el.textContent = '';
-  let i = 0;
-  const timer = setInterval(() => {
-    el.textContent += text[i];
-    i++;
-    if (i >= text.length) clearInterval(timer);
-  }, speed);
-}
-
-function copyOutput() {
-  const text = document.getElementById('forge-output').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copy-btn');
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => { btn.textContent = 'Copy optimized prompt'; }, 2000);
-  });
-}
-
-function copyCmd(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓';
-    setTimeout(() => { btn.textContent = 'copy'; }, 2000);
-  });
-}
-
-const SESSION_TURNS = [
-  { prompt: "what is jwt", score: -5, intercepted: false },
-  { prompt: "cool, building a fastapi app", score: 8, intercepted: false },
-  { prompt: "write a middleware that validates tokens and handles refresh", score: 65, intercepted: true, optimized: "Write a FastAPI middleware class `JWTAuthMiddleware` that validates JWT Bearer tokens using python-jose RS256, raises HTTP 401 on failure, and silently refreshes tokens expiring within 5 minutes via /auth/refresh." },
-  { prompt: "no that's wrong, try again — handle expired tokens differently", score: 72, intercepted: true, optimized: "Update JWTAuthMiddleware to distinguish between expired tokens (HTTP 401 with error: token_expired) and invalid tokens (HTTP 401 with error: token_invalid). For expired tokens only, attempt silent refresh before rejecting." },
-  { prompt: "thanks", score: -45, intercepted: false },
-];
-
-let sessionTimer = null;
-function replaySession() {
-  const container = document.getElementById('session-turns');
-  const summary = document.getElementById('session-summary');
-  container.innerHTML = '';
-  summary.textContent = '';
-  if (sessionTimer) clearTimeout(sessionTimer);
-
-  let intercepted = 0;
-  SESSION_TURNS.forEach((turn, i) => {
-    if (turn.intercepted) intercepted++;
-    setTimeout(() => {
-      const div = document.createElement('div');
-      div.className = 'space-y-2 opacity-0 transition-opacity duration-300';
-      div.innerHTML = `
-        <div class="flex items-start gap-3">
-          <span class="text-on-surface-variant/30 text-xs mt-0.5">Turn ${i+1}</span>
-          <div class="flex-1">
-            <div class="text-on-surface-variant/70 text-xs mb-1">${turn.prompt}</div>
-            ${turn.intercepted
-              ? `<div class="text-primary-container text-xs">⚡ PrePrompt +${turn.score} · intercepted</div>
-                 <div class="text-green-300/70 text-xs mt-1 pl-2 border-l border-primary-container/30">${turn.optimized}</div>`
-              : `<div class="text-on-surface-variant/30 text-xs">── score ${turn.score} · passed through ──</div>`
-            }
+            <div className="mem-copy">
+              <h3>Compounding confidence, not one-shot guesses.</h3>
+              <p>
+                Every prompt passes through a stack signal extractor that watches
+                for language markers, framework idioms, and tooling references.
+                Matches <em>add</em> to confidence (+0.02 per hit); contradictory
+                values <em>reset</em>. By week two, every rewrite speaks your
+                stack's dialect.
+              </p>
+              <div className="mem-bullets">
+                <div className="mem-bullet"><span>›</span> Consolidates across sessions — one memory, not per-repo.</div>
+                <div className="mem-bullet"><span>›</span> Inspect, edit, or clear via <code>preprompt-memory</code>.</div>
+                <div className="mem-bullet"><span>›</span> Never leaves your machine. SQLite, local, WAL mode.</div>
+              </div>
+            </div>
           </div>
-        </div>`;
-      container.appendChild(div);
-      setTimeout(() => { div.style.opacity = '1'; }, 50);
+        </section>
+      );
+    }
 
-      if (i === SESSION_TURNS.length - 1) {
-        setTimeout(() => {
-          summary.textContent = `PrePrompt intercepted ${intercepted} of ${SESSION_TURNS.length} prompts — exactly when it mattered.`;
-        }, 300);
-      }
-    }, i * 900);
-  });
-}
+    /* ── Architecture ── */
+    function Architecture() {
+      return (
+        <section className="arch">
+          <SectionHeader
+            kicker="06  architecture"
+            title="A hook, a sidecar, and an MCP server. That's it."
+          />
+          <pre className="arch-box">{`Claude Code / Cursor
+        │
+        ▼  UserPromptSubmit hook
+  pre_prompt.py
+  ├── classify_prompt()     ← pure heuristic, <1ms, no API
+  ├── [score < 38] ──────▶  pass through unchanged
+  └── [score ≥ 38]
+      ├── optimize()        ← haiku call + stack context
+      ├── write sidecar     ← ~/.preprompt/pending/<uuid>.json
+      └── return optimized prompt
+        │
+        ▼  MCP server (on next tool call)
+  flush_pending_hook_events()  ← sidecars → SQLite
+  save_prompt_event()
+  update_memory_from_prompt()`}</pre>
+          <p className="arch-note">
+            The hook never holds a database connection. It writes a small JSON
+            sidecar so there's no lock conflict with the MCP server — a tiny
+            concurrency pattern that pays off the first time you run two Claude
+            Code sessions in parallel.
+          </p>
+        </section>
+      );
+    }
 
-function appendEmail() {
-  const email = document.getElementById('email-input').value.trim();
-  const btn = document.getElementById('beta-join-btn');
-  if (email) {
-    btn.href = 'https://preprompt.beehiiv.com/subscribe?email=' + encodeURIComponent(email);
-  }
-}
+    /* ── Cost ── */
+    function Cost() {
+      return (
+        <section className="cost">
+          <div className="cost-grid">
+            <div className="cost-item">
+              <div className="cost-k">simple prompts</div>
+              <div className="cost-v">$0.00</div>
+              <div className="cost-d">never hit the API. classifier is pure python.</div>
+            </div>
+            <div className="cost-item cost-emph">
+              <div className="cost-k">per intercept</div>
+              <div className="cost-v">~$0.001</div>
+              <div className="cost-d">haiku-4-5, typical rewrite 300–600 tokens.</div>
+            </div>
+            <div className="cost-item">
+              <div className="cost-k">20 complex / day</div>
+              <div className="cost-v">~$0.60/mo</div>
+              <div className="cost-d">heavy-use dev, one month. that's it.</div>
+            </div>
+          </div>
+        </section>
+      );
+    }
 
-const style = document.createElement('style');
-style.textContent = `@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }`;
-document.head.appendChild(style);
-</script>
+    /* ── Install ── */
+    function Install() {
+      return (
+        <section className="inst" id="install">
+          <SectionHeader
+            kicker="07  install"
+            title="One command. Five seconds. No signup."
+          />
+          <div className="inst-card">
+            <div className="inst-step">
+              <span className="inst-n">01</span>
+              <span className="inst-l">install via pip</span>
+            </div>
+            <CopyRow cmd="pip install preprompt" />
+
+            <div className="inst-step">
+              <span className="inst-n">02</span>
+              <span className="inst-l">register with your IDE</span>
+            </div>
+            <CopyRow cmd="python scripts/setup_global_hook.py    # claude code" />
+            <CopyRow cmd="python scripts/install_cursor.py       # cursor" />
+            <CopyRow cmd="python scripts/install_windsurf.py     # windsurf" />
+
+            <div className="inst-foot">
+              Requires <code>ANTHROPIC_API_KEY</code> in <code>.env</code> · python 3.11+ · macos &amp; linux
+              <br />Or from source: <code>git clone github.com/yashdeeptehlan/preprompt &amp;&amp; ./scripts/install.sh</code>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Footer ── */
+    function Footer() {
+      return (
+        <footer className="foot">
+          <div className="foot-top">
+            <Logo size={22} />
+            <div className="foot-links">
+              <a href="https://github.com/yashdeeptehlan/preprompt">github</a>
+              <a href="#how">docs</a>
+              <a href="#install">install</a>
+              <a href="https://github.com/yashdeeptehlan/preprompt/blob/main/LICENSE">mit license</a>
+            </div>
+          </div>
+          <div className="foot-rule" />
+          <div className="foot-bot">
+            <span>© 2026 preprompt · built for the seam between keyboard and model.</span>
+            <span className="foot-v">v0.1.0 · phase 7c complete · 28/28 tests passing</span>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      return (
+        <>
+          <Nav />
+          <Hero />
+          <BeforeAfter />
+          <HowItWorks />
+          <ClassifierTable />
+          <StackMemory />
+          <Architecture />
+          <Cost />
+          <Install />
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+  </script>
 </body>
 </html>
