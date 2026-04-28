@@ -1,5 +1,9 @@
 # PrePrompt
 
+[![PyPI](https://img.shields.io/pypi/v/preprompt)](https://pypi.org/project/preprompt/)
+[![CI](https://github.com/yashdeeptehlan/preprompt/actions/workflows/ci.yml/badge.svg)](https://github.com/yashdeeptehlan/preprompt/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+
 > Your prompts, battle-tested. An MCP server that intercepts and optimizes
 > prompts in Claude Code and Cursor before they reach the LLM.
 
@@ -48,19 +52,19 @@ When a prompt is intercepted you see this in your terminal:
 
 ## Install
 
+**pip (recommended):**
+
 ```bash
-git clone https://github.com/yashdeeptehlan/preprompt
-cd preprompt
-./scripts/install.sh
+pip install preprompt
+python scripts/setup_global_hook.py
+# Restart Claude Code or Cursor
 ```
 
-Or manually:
+**From source:**
 
 ```bash
-pip install -e .
-cp .env.example .env    # add your ANTHROPIC_API_KEY
-python scripts/setup_global_hook.py
-python scripts/install_cursor.py
+git clone https://github.com/yashdeeptehlan/preprompt
+cd preprompt && ./scripts/install.sh
 ```
 
 ## How the smart classifier works
