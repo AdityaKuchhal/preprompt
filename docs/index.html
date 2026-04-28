@@ -864,6 +864,132 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ───────── MOBILE RESPONSIVE ───────── */
+@media (max-width: 768px) {
+  :root {
+    --shell-x: 20px;
+    --pad-y: 60px;
+  }
+
+  /* Nav */
+  .nav {
+    padding: 16px var(--shell-x);
+    gap: 12px;
+  }
+  .nav-links {
+    gap: 16px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Hero */
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-title {
+    font-size: clamp(32px, 8vw, 48px);
+  }
+  .hero-sub {
+    font-size: 16px;
+  }
+  .hero-meta {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+  .hero-ctas {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* All 2-col grids collapse to 1 col */
+  .two-col,
+  .before-after-grid,
+  .install-grid,
+  .cost-strip,
+  .memory-grid,
+  .arch-grid,
+  .how-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+  }
+
+  /* Classifier table — allow horizontal scroll */
+  .classifier-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Section padding */
+  section, .section {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  /* Typography scale down */
+  h2, .section-title {
+    font-size: clamp(24px, 6vw, 36px) !important;
+  }
+
+  /* Terminal/annotation boxes */
+  .annotation-box,
+  .terminal-box,
+  .ascii-box,
+  pre {
+    font-size: 11px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Before/after chips — wrap */
+  .chip-row,
+  .example-chips {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Install steps */
+  .install-step {
+    padding: 16px !important;
+  }
+
+  /* Footer */
+  footer, .footer {
+    flex-direction: column !important;
+    gap: 24px;
+    text-align: center;
+  }
+  .footer-links {
+    justify-content: center !important;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root { --shell-x: 16px; }
+
+  .hero-title {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .nav-links a:not(:first-child):not(:last-child) {
+    display: none;
+  }
+
+  .hero-meta {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .annotation-box,
+  .terminal-box,
+  .ascii-box,
+  pre {
+    font-size: 10px !important;
+  }
+}
   </style>
 
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
