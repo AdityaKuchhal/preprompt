@@ -1,4 +1,4 @@
-<!-- Last updated: 2026-04-28 13:20 -->
+<!-- Last updated: 2026-04-29 23:18 -->
 # PrePrompt — CONTEXT.md
 # This file is auto-maintained. Read it fully at the start of every chat.
 
@@ -29,17 +29,22 @@ mcp_server/
 
 storage/
   db.py          — SQLite WAL: prompt_history + stack_memory + sessions tables
+                   prompt_history has user_kept column (NULL=unrated, 1=kept, 0=rejected)
+                   record_user_feedback(event_id, kept) — saves accept/reject
+                   get_feedback_stats() — returns accept_rate, kept, rejected counts
                    Sidecar pattern: hook writes JSON to ~/.preprompt/pending/,
                    flushed by MCP server or CLI commands via flush_pending_hook_events()
                    flush_pending_hook_events() also calls update_memory_from_prompt()
                    so Claude Code sessions contribute to stack memory
                    get_or_create_session(): stable {hostname}-{date} session key
                    get_all_history(): cross-session history query
-                   upsert_stack_memory(): compounding confidence (+0.02/hit, reset on value change)
+                   upsert_stack_memory(): compounding confidence (+0.03/hit, reset on value change)
 
 cli/
   commands.py    — preprompt-history, stats, memory, test-classifier,
-                   clip (clipboard optimizer), optimize, update-context
+                   clip (cross-platform clipboard optimizer), optimize,
+                   feedback (accept/reject rating), install (one-command setup),
+                   update, update-context
   watch.py       — preprompt-watch: auto-flushes sidecars on startup, live tail of ~/.preprompt/activity.log
 
 .claude/
@@ -96,6 +101,7 @@ tests/
 - Phase 8: activity.log in hook, preprompt-watch live feed, preprompt-clip clipboard optimizer, session summary on server shutdown
 - Phase 8b: flush sidecars runs memory extraction (Claude Code → stack memory), watch auto-flushes on startup
 - Phase 8c: preprompt-update command, version check on stats/history startup, version in stats header
+- Phase 9: accept/reject feedback tracking, preprompt-install one-command setup, preprompt-feedback CLI, cross-platform clipboard, faster memory (0.85/0.03), landing page prerequisites block
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database

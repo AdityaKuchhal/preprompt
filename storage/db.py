@@ -38,9 +38,15 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             classifier_score INTEGER,
             was_intercepted  INTEGER,
             turn_number      INTEGER,
-            session_id       TEXT
+            session_id       TEXT,
+            user_kept        INTEGER DEFAULT NULL
         )
     """)
+    try:
+        conn.execute("ALTER TABLE prompt_history ADD COLUMN user_kept INTEGER DEFAULT NULL")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.execute("""
         CREATE TABLE IF NOT EXISTS stack_memory (
             id           TEXT PRIMARY KEY,
@@ -227,7 +233,7 @@ def upsert_stack_memory(key: str, value: str, confidence: float) -> None:
     if existing:
         entry_id, existing_value, existing_confidence, source_count = existing
         if existing_value == value:
-            new_confidence = min(0.99, existing_confidence + 0.02)
+            new_confidence = min(0.99, existing_confidence + 0.03)
             conn.execute("""
                 UPDATE stack_memory
                 SET updated_at = ?, confidence = ?, source_count = ?
@@ -279,6 +285,47 @@ def get_full_stack_memory() -> list[dict]:
             d["updated_at"] = _parse_dt(d["updated_at"])
         result.append(d)
     return result
+
+
+# ── User feedback ─────────────────────────────────────────────────────────────
+
+def record_user_feedback(event_id: str, kept: bool) -> None:
+    """Record whether user kept (1) or rejected (0) the optimization."""
+    conn = _get_connection()
+    conn.execute(
+        "UPDATE prompt_history SET user_kept = ? WHERE id = ?",
+        [1 if kept else 0, event_id],
+    )
+    conn.commit()
+
+
+def get_feedback_stats() -> dict:
+    """Return accept/reject stats for intercepted prompts."""
+    conn = get_read_connection()
+    try:
+        row = conn.execute("""
+            SELECT
+                COUNT(*) as total_intercepted,
+                SUM(CASE WHEN user_kept = 1 THEN 1 ELSE 0 END) as kept,
+                SUM(CASE WHEN user_kept = 0 THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN user_kept IS NULL THEN 1 ELSE 0 END) as no_feedback
+            FROM prompt_history
+            WHERE was_intercepted = 1
+        """).fetchone()
+        total, kept, rejected, no_feedback = row
+        kept = kept or 0
+        rejected = rejected or 0
+        rated = kept + rejected
+        accept_rate = round(kept / rated * 100) if rated > 0 else None
+        return {
+            "total_intercepted": total or 0,
+            "kept": kept,
+            "rejected": rejected,
+            "no_feedback": no_feedback or 0,
+            "accept_rate": accept_rate,
+        }
+    finally:
+        conn.close()
 
 
 # ── Sidecar flush ──────────────────────────────────────────────────────────────

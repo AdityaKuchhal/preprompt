@@ -49,6 +49,8 @@ preprompt-memory             = "cli.commands:memory_cmd"
 preprompt-clip               = "cli.commands:clip_cmd"
 preprompt-optimize           = "cli.commands:optimize_cmd"
 preprompt-watch              = "cli.watch:watch_cmd"
+preprompt-feedback           = "cli.commands:feedback_cmd"
+preprompt-install            = "cli.commands:install_cmd"
 preprompt-update             = "cli.commands:update_cmd"
 preprompt-update-context     = "cli.commands:update_context_cmd"
 

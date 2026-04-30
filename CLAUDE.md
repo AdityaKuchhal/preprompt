@@ -29,6 +29,8 @@ preprompt-optimize "your prompt here"   # or pipe: echo "..." | preprompt-optimi
 preprompt-optimize --raw "prompt"        # prints optimized text only
 preprompt-watch                          # live tail of ~/.preprompt/activity.log
 preprompt-clip                           # read clipboard, optimize, write back (macOS)
+preprompt-feedback                       # rate recent optimizations (builds accept/reject stats)
+preprompt-install                        # one-command setup (API key + hooks)
 preprompt-update                         # upgrade to latest PyPI version + re-register hooks
 preprompt-update-context
 

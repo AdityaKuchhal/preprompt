@@ -159,6 +159,12 @@ def stats_cmd() -> None:
     print(f" Sessions tracked:        {sessions}")
     print(f" DB path:                 {_DB_PATH}")
 
+    from storage.db import get_feedback_stats
+    fb = get_feedback_stats()
+    if fb["accept_rate"] is not None:
+        print(f" Accept rate:             {fb['accept_rate']}% "
+              f"({fb['kept']} kept / {fb['rejected']} rejected)")
+
 
 # ── preprompt-test-classifier ────────────────────────────────────────────────
 
@@ -238,22 +244,61 @@ def memory_cmd() -> None:
 
 # ── preprompt-clip ───────────────────────────────────────────────────────────
 
-def clip_cmd() -> None:
-    """Read clipboard, optimize, write back to clipboard. macOS only (pbpaste/pbcopy).
-    Linux users: pipe manually via  echo "..." | preprompt-optimize --raw | xclip
-    """
+def _clipboard_read() -> str:
+    """Read clipboard cross-platform."""
     import subprocess
+    if sys.platform == "darwin":
+        return subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
+    elif sys.platform == "win32":
+        import tkinter as tk
+        root = tk.Tk()
+        root.withdraw()
+        text = root.clipboard_get()
+        root.destroy()
+        return text
+    else:  # Linux
+        try:
+            return subprocess.run(
+                ["xclip", "-selection", "clipboard", "-o"],
+                capture_output=True, text=True,
+            ).stdout
+        except FileNotFoundError:
+            try:
+                return subprocess.run(
+                    ["xsel", "--clipboard", "--output"],
+                    capture_output=True, text=True,
+                ).stdout
+            except FileNotFoundError:
+                print("Install xclip or xsel for clipboard support on Linux")
+                return ""
 
-    try:
-        pb = subprocess.run(["pbpaste"], capture_output=True, text=True)
-        prompt = pb.stdout.strip()
-    except FileNotFoundError:
-        print("Error: pbpaste not found. This command requires macOS.", file=sys.stderr)
-        print("Linux alternative: echo '...' | preprompt-optimize --raw | xclip")
-        return
-    except Exception as e:
-        print(f"Error reading clipboard: {e}", file=sys.stderr)
-        return
+
+def _clipboard_write(text: str) -> None:
+    """Write clipboard cross-platform."""
+    import subprocess
+    if sys.platform == "darwin":
+        subprocess.run(["pbcopy"], input=text, text=True)
+    elif sys.platform == "win32":
+        import tkinter as tk
+        root = tk.Tk()
+        root.withdraw()
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()
+        root.destroy()
+    else:  # Linux
+        try:
+            subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True)
+        except FileNotFoundError:
+            try:
+                subprocess.run(["xsel", "--clipboard", "--input"], input=text, text=True)
+            except FileNotFoundError:
+                print(f"Optimized prompt:\n{text}")
+
+
+def clip_cmd() -> None:
+    """Read clipboard, optimize, write back. Works on macOS, Windows, Linux."""
+    prompt = _clipboard_read().strip()
 
     if not prompt:
         print("Clipboard is empty.")
@@ -278,7 +323,7 @@ def clip_cmd() -> None:
     opt_result = optimize(prompt, [])
     optimized = opt_result["optimized_prompt"]
 
-    subprocess.run(["pbcopy"], input=optimized, text=True)
+    _clipboard_write(optimized)
     print(f"✓ Optimized and copied to clipboard (+{score})")
     if opt_result.get("reason"):
         print(f"  {opt_result['reason']}")
@@ -346,6 +391,149 @@ def optimize_cmd() -> None:
         print(sep)
         print(optimized)
         print(sep)
+
+
+# ── preprompt-feedback ───────────────────────────────────────────────────────
+
+def feedback_cmd() -> None:
+    """Rate recent intercepted prompts to build accept/reject stats."""
+    from storage.db import get_all_history, record_user_feedback, flush_pending_hook_events
+    flush_pending_hook_events()
+
+    events = get_all_history(limit=10, intercepted_only=True)
+    if not events:
+        print("No intercepted prompts yet.")
+        return
+
+    unrated = [e for e in events if e.get("user_kept") is None]
+    if not unrated:
+        print("All recent prompts have feedback. Check preprompt-stats for results.")
+        return
+
+    print()
+    print("  PrePrompt — prompt feedback")
+    print("  Rate recent optimizations (y=kept as-is, n=edited/ignored, s=skip)")
+    print()
+
+    for event in unrated[:5]:
+        original  = event["original_prompt"][:70]
+        optimized = event["optimized_prompt"][:70]
+        score     = event["classifier_score"]
+
+        print(f"  ┌─ score: {score} ─────────────────────────────────────────")
+        print(f"  │  ORIGINAL   {original}")
+        print(f"  │  OPTIMIZED  {optimized}...")
+        print(f"  └─────────────────────────────────────────────────────────")
+        print()
+
+        while True:
+            ans = input("  Did you use the optimized version? (y/n/s): ").strip().lower()
+            if ans in ("y", "n", "s"):
+                break
+            print("  Please enter y, n, or s")
+
+        if ans == "y":
+            record_user_feedback(event["id"], kept=True)
+            print("  ✓ Recorded — thanks!")
+        elif ans == "n":
+            record_user_feedback(event["id"], kept=False)
+            print("  ✓ Recorded — helps us improve!")
+        else:
+            print("  Skipped.")
+        print()
+
+    from storage.db import get_feedback_stats
+    stats = get_feedback_stats()
+    if stats["accept_rate"] is not None:
+        print(f"  Accept rate: {stats['accept_rate']}% "
+              f"({stats['kept']} kept / {stats['rejected']} rejected)")
+        print()
+
+
+# ── preprompt-install ─────────────────────────────────────────────────────────
+
+def install_cmd() -> None:
+    """One-command setup: configure API key, register hooks, done."""
+    import subprocess
+    import os
+
+    print()
+    print("  ⚡ PrePrompt — setup")
+    print()
+
+    # Step 1: Check for API key
+    api_key  = os.environ.get("ANTHROPIC_API_KEY", "")
+    env_file = Path.home() / ".preprompt" / ".env"
+    local_env = Path(__file__).resolve().parent.parent / ".env"
+
+    if not api_key and local_env.exists():
+        from dotenv import load_dotenv
+        load_dotenv(local_env)
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+
+    if not api_key:
+        print("  Step 1/3 — Anthropic API key")
+        print("  Get your key at: https://console.anthropic.com/api-keys")
+        print("  New accounts get $5 free (no card required)")
+        print()
+        api_key = input("  Paste your API key: ").strip()
+        if not api_key:
+            print("  Skipped — you can add it later to ~/.preprompt/.env")
+        else:
+            env_file.parent.mkdir(parents=True, exist_ok=True)
+            env_file.write_text(f"ANTHROPIC_API_KEY={api_key}\n")
+            if not local_env.exists():
+                local_env.write_text(f"ANTHROPIC_API_KEY={api_key}\n")
+            print("  ✓ API key saved")
+    else:
+        print("  Step 1/3 — API key already configured ✓")
+
+    print()
+
+    # Step 2: Register Claude Code global hook
+    print("  Step 2/3 — Registering Claude Code hook...")
+    hook_script = Path(__file__).resolve().parent.parent / "scripts" / "setup_global_hook.py"
+    if hook_script.exists():
+        result = subprocess.run(
+            [sys.executable, str(hook_script)],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            print("  ✓ Claude Code hook registered")
+        else:
+            print(f"  ⚠ Hook registration failed: {result.stderr[:100]}")
+    else:
+        print("  ⚠ Run manually: python scripts/setup_global_hook.py")
+
+    print()
+
+    # Step 3: Register Cursor if installed
+    print("  Step 3/3 — Checking for Cursor...")
+    cursor_config = Path.home() / ".cursor"
+    if cursor_config.exists():
+        cursor_script = Path(__file__).resolve().parent.parent / "scripts" / "install_cursor.py"
+        if cursor_script.exists():
+            result = subprocess.run(
+                [sys.executable, str(cursor_script)],
+                capture_output=True, text=True,
+            )
+            if result.returncode == 0:
+                print("  ✓ Cursor MCP registered")
+            else:
+                print(f"  ⚠ Cursor registration failed")
+        else:
+            print("  ⚠ Run manually: python scripts/install_cursor.py")
+    else:
+        print("  Cursor not found — skipping")
+
+    print()
+    print("  ✓ PrePrompt is ready")
+    print()
+    print("  Restart Claude Code and Cursor to activate.")
+    print()
+    print("  Test it:   preprompt-test-classifier")
+    print("  Watch live: preprompt-watch")
+    print()
 
 
 # ── preprompt-update ─────────────────────────────────────────────────────────

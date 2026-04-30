@@ -104,10 +104,15 @@ $ preprompt-memory
 ## CLI
 
 ```bash
+preprompt-install          # one-command setup (API key + hooks)
 preprompt-history          # recent prompt events across all sessions
 preprompt-stats            # optimization stats (total, intercepted, avg score)
 preprompt-memory           # learned stack context
 preprompt-test-classifier  # test classifier on sample prompts
+preprompt-feedback         # rate recent optimizations (builds accept/reject stats)
+preprompt-watch            # live feed of interceptions in a second terminal
+preprompt-clip             # optimize clipboard (works on macOS, Windows, Linux)
+preprompt-optimize "..."   # optimize a prompt from the command line
 ```
 
 ## Cost

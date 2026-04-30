@@ -102,7 +102,9 @@ def extract_stack_signals(prompt: str, history: list) -> dict[str, str]:
 
 
 def update_memory_from_prompt(prompt: str, history: list) -> None:
-    """Extract stack signals and upsert each into stack_memory with confidence 0.8."""
+    """Extract stack signals and upsert each into stack_memory."""
     signals = extract_stack_signals(prompt, history)
+    strong_signals = {"language", "framework"}
     for key, value in signals.items():
-        upsert_stack_memory(key, value, confidence=0.8)
+        confidence = 0.85 if key in strong_signals else 0.80
+        upsert_stack_memory(key, value, confidence=confidence)
