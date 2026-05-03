@@ -1211,7 +1211,7 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
           <div className="hero-grid">
             <div className="hero-left">
               <div className="eyebrow">
-                <span className="dot" /> MCP server · runs locally · v0.1.0
+                <span className="dot" /> MCP server · runs locally · v0.1.2
               </div>
               <h1 className="hero-title">
                 Your prompts,<br />
@@ -1248,6 +1248,56 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
             </div>
           </div>
         </header>
+      );
+    }
+
+    /* ── Social proof strip ── */
+    function SocialProof() {
+      return (
+        <div style={{
+          borderTop: "1px solid var(--rule-soft)",
+          borderBottom: "1px solid var(--rule-soft)",
+          background: "var(--bg-2)",
+          padding: "20px var(--shell-x)",
+          maxWidth: "var(--maxw)",
+          margin: "0 auto",
+        }}>
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "32px",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "var(--mono)",
+            fontSize: "12px",
+            color: "var(--ink-3)",
+          }}>
+            <span style={{display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{color:"var(--accent-ink)",fontWeight:600}}>★ 10</span>
+              GitHub stars
+            </span>
+            <span style={{color:"var(--rule)"}}>·</span>
+            <span>
+              <span style={{color:"var(--ink)",fontWeight:600}}>71%</span>
+              {" "}interception rate in real usage
+            </span>
+            <span style={{color:"var(--rule)"}}>·</span>
+            <span>
+              avg score{" "}
+              <span style={{color:"var(--ink)",fontWeight:600}}>49</span>
+              {" "}on intercepted prompts
+            </span>
+            <span style={{color:"var(--rule)"}}>·</span>
+            <span>
+              <a href="https://news.ycombinator.com/item?id=47929978"
+                 target="_blank" rel="noreferrer"
+                 style={{color:"var(--accent-ink)",fontWeight:600}}>
+                Show HN
+              </a>
+              {" "}· 22 points
+            </span>
+          </div>
+        </div>
       );
     }
 
@@ -1599,14 +1649,111 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
               <span className="inst-n">02</span>
               <span className="inst-l">register with your IDE</span>
             </div>
+            <CopyRow cmd="preprompt-install" />
+            <div style={{
+              fontFamily: "var(--mono)",
+              fontSize: "11px",
+              color: "var(--ink-3)",
+              padding: "8px 0 4px 2px",
+              letterSpacing: "0.02em"
+            }}>
+              auto-detects Claude Code, Cursor, and Windsurf. or manually:
+            </div>
             <CopyRow cmd="python scripts/setup_global_hook.py    # claude code" />
             <CopyRow cmd="python scripts/install_cursor.py       # cursor" />
-            <CopyRow cmd="python scripts/install_windsurf.py     # windsurf" />
 
             <div className="inst-foot">
               Requires <code>ANTHROPIC_API_KEY</code> in <code>.env</code> · python 3.11+ · macos &amp; linux
               <br />Or from source: <code>git clone github.com/yashdeeptehlan/preprompt &amp;&amp; ./scripts/install.sh</code>
             </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── FAQ ── */
+    function FAQ() {
+      const [open, setOpen] = React.useState(null);
+      const items = [
+        {
+          q: "Do I need a Claude.ai subscription?",
+          a: "No. PrePrompt uses the Anthropic API directly — this is separate from Claude.ai Pro/Team subscriptions. You need an API key from console.anthropic.com. New accounts get $5 free credit, no card required initially."
+        },
+        {
+          q: "Which IDEs does it support?",
+          a: "Claude Code (fully automatic via UserPromptSubmit hook) and Cursor (automatic in Agent mode via MCP rules). Windsurf and Zed work with manual setup. VS Code support is coming."
+        },
+        {
+          q: "Will it slow down my workflow?",
+          a: "No. The classifier runs in under 1ms locally with zero API calls. Simple prompts — questions, short acks, already-structured prompts — pass through untouched. Only complex, vague prompts with score ≥ 38 trigger a Haiku call, adding ~1-2 seconds."
+        },
+        {
+          q: "Does my code leave my machine?",
+          a: "The only external call is to Anthropic's API to rewrite the prompt — the same API your IDE already calls. Your codebase, files, and history stay local in SQLite at ~/.preprompt/history.db."
+        },
+      ];
+
+      return (
+        <section style={{
+          padding: "var(--pad-y) var(--shell-x)",
+          maxWidth: "var(--maxw)",
+          margin: "0 auto",
+        }}>
+          <SectionHeader
+            kicker="08  faq"
+            title="Common questions."
+          />
+          <div style={{
+            border: "1px solid var(--rule)",
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+            background: "var(--bg-2)",
+          }}>
+            {items.map((item, i) => (
+              <div key={i} style={{
+                borderBottom: i < items.length - 1 ? "1px solid var(--rule-soft)" : "none",
+              }}>
+                <button
+                  onClick={() => setOpen(open === i ? null : i)}
+                  style={{
+                    all: "unset",
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "20px 24px",
+                    fontFamily: "var(--mono)",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "var(--ink)",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <span>{item.q}</span>
+                  <span style={{
+                    color: "var(--accent-ink)",
+                    fontSize: "18px",
+                    lineHeight: 1,
+                    marginLeft: "16px",
+                    flexShrink: 0,
+                  }}>
+                    {open === i ? "−" : "+"}
+                  </span>
+                </button>
+                {open === i && (
+                  <div style={{
+                    padding: "0 24px 20px",
+                    fontFamily: "var(--sans)",
+                    fontSize: "14px",
+                    lineHeight: 1.6,
+                    color: "var(--ink-2)",
+                  }}>
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       );
@@ -1729,7 +1876,7 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
           <div className="foot-rule" />
           <div className="foot-bot">
             <span>© 2026 preprompt · built for the seam between keyboard and model.</span>
-            <span className="foot-v">v0.1.1 · phase 8c complete · 29/29 tests passing</span>
+            <span className="foot-v">v0.1.2 · 29/29 tests passing</span>
           </div>
         </footer>
       );
@@ -1741,6 +1888,7 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
         <>
           <Nav />
           <Hero />
+          <SocialProof />
           <BeforeAfter />
           <HowItWorks />
           <ClassifierTable />
@@ -1748,6 +1896,7 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
           <Architecture />
           <Cost />
           <Install />
+          <FAQ />
           <Beta />
           <Footer />
         </>
