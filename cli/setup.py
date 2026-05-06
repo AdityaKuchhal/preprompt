@@ -84,7 +84,7 @@ def maybe_run_setup() -> None:
     try:
         from cli._register import register_hooks
         register_hooks(key)
-        print("  ✓ Claude Code hook registered")
+        print("  ✓ Setup complete. Restart Claude Code or Cursor to activate PrePrompt.")
     except Exception:
         print("  Run preprompt-install to register hooks in Claude Code and Cursor.")
     print()

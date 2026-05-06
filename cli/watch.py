@@ -14,6 +14,7 @@ import time
 import sys
 import os
 from pathlib import Path
+from cli.setup import maybe_run_setup
 
 _LOG = Path.home() / ".preprompt" / "activity.log"
 _DB  = Path.home() / ".preprompt" / "history.db"
@@ -54,6 +55,7 @@ def _stats_line() -> str:
 
 
 def watch_cmd() -> None:
+    maybe_run_setup()
     _header()
 
     try:

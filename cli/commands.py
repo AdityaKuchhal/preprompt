@@ -15,6 +15,7 @@ import sys
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from cli.setup import maybe_run_setup
 
 _DB_PATH = Path.home() / ".preprompt" / "history.db"
 
@@ -82,7 +83,6 @@ def _check_for_updates() -> None:
 # ── preprompt-history ────────────────────────────────────────────────────────
 
 def history_cmd() -> None:
-    from cli.setup import maybe_run_setup
     maybe_run_setup()
     _check_for_updates()
     parser = argparse.ArgumentParser(
@@ -131,7 +131,6 @@ def history_cmd() -> None:
 # ── preprompt-stats ──────────────────────────────────────────────────────────
 
 def stats_cmd() -> None:
-    from cli.setup import maybe_run_setup
     maybe_run_setup()
     _check_for_updates()
     from storage.db import flush_pending_hook_events
@@ -193,6 +192,7 @@ _BENCHMARK_PROMPTS = [
 
 
 def test_classifier_cmd() -> None:
+    maybe_run_setup()
     _here = Path(__file__).resolve().parent.parent
     if str(_here) not in sys.path:
         sys.path.insert(0, str(_here))
@@ -217,6 +217,7 @@ def test_classifier_cmd() -> None:
 # ── preprompt-memory ─────────────────────────────────────────────────────────
 
 def memory_cmd() -> None:
+    maybe_run_setup()
     conn = _open_db()
 
     try:
@@ -309,6 +310,7 @@ def _clipboard_write(text: str) -> None:
 
 def clip_cmd() -> None:
     """Read clipboard, optimize, write back. Works on macOS, Windows, Linux."""
+    maybe_run_setup()
     prompt = _clipboard_read().strip()
 
     if not prompt:
@@ -344,6 +346,7 @@ def clip_cmd() -> None:
 
 def optimize_cmd() -> None:
     """Optimize a prompt from stdin or --prompt flag and print the result."""
+    maybe_run_setup()
     _here = Path(__file__).resolve().parent.parent
     if str(_here) not in sys.path:
         sys.path.insert(0, str(_here))
@@ -408,6 +411,7 @@ def optimize_cmd() -> None:
 
 def feedback_cmd() -> None:
     """Rate recent intercepted prompts to build accept/reject stats."""
+    maybe_run_setup()
     from storage.db import get_all_history, record_user_feedback, flush_pending_hook_events
     flush_pending_hook_events()
 
@@ -555,6 +559,7 @@ def install_cmd() -> None:
 
 def update_cmd() -> None:
     """Upgrade PrePrompt to latest version and re-register hooks."""
+    maybe_run_setup()
     import subprocess
     from importlib.metadata import version as pkg_version
 

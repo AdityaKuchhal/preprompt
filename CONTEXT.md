@@ -116,6 +116,7 @@ tests/
 - Phase 9b: landing page upgrades — social proof strip, FAQ accordion, preprompt-install leads install section, v0.1.4 throughout, mobile ASCII box fixed (CSS card on mobile, full ASCII on desktop), beta signup matches paper/amber design
 - Phase 9c: fix get_or_create_session() UNIQUE constraint race — INSERT OR IGNORE + threading.Lock, safe against concurrent Cursor MCP server processes
 - Phase 9d: pip-installable hook + registration — cli/hook.py (python -m cli.hook), cli/_register.py (register_hooks()), setup_global_hook.py uses module paths, no __file__-relative paths for installed users
+- Phase 9e: maybe_run_setup() wired into all CLI commands (not install_cmd); register_hooks() detects Claude Code + Cursor before writing settings; success message on first-run wizard completion
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database
