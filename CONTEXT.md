@@ -37,6 +37,8 @@ storage/
                    flush_pending_hook_events() also calls update_memory_from_prompt()
                    so Claude Code sessions contribute to stack memory
                    get_or_create_session(): stable {hostname}-{date} session key
+                   race-safe: INSERT OR IGNORE + _session_lock (threading.Lock)
+                   handles Cursor spawning multiple MCP server processes simultaneously
                    get_all_history(): cross-session history query
                    upsert_stack_memory(): compounding confidence (+0.03/hit, reset on value change)
 
@@ -105,6 +107,7 @@ tests/
 - Phase 8c: preprompt-update command, version check on stats/history, version in stats header
 - Phase 9: accept/reject tracking, preprompt-feedback CLI, preprompt-install one-command setup, cross-platform clipboard, faster memory (0.85/+0.03), first-run API key wizard, Beehiiv beta signup wired
 - Phase 9b: landing page upgrades — social proof strip, FAQ accordion, preprompt-install leads install section, v0.1.2 throughout, mobile ASCII box fixed (CSS card on mobile, full ASCII on desktop), beta signup matches paper/amber design
+- Phase 9c: fix get_or_create_session() UNIQUE constraint race — INSERT OR IGNORE + threading.Lock, safe against concurrent Cursor MCP server processes
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database
