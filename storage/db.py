@@ -5,11 +5,13 @@ import uuid
 import json
 import socket
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 _DB_PATH = Path.home() / ".preprompt" / "history.db"
+_session_lock = threading.Lock()
 _conn: Optional[sqlite3.Connection] = None
 
 
@@ -117,24 +119,18 @@ def get_or_create_session() -> str:
     today = datetime.now(timezone.utc).date().isoformat()
     session_key = f"{hostname}-{today}"
 
-    conn = _get_connection()
-    existing = conn.execute(
-        "SELECT session_id FROM sessions WHERE session_id = ?",
-        [session_key],
-    ).fetchone()
-
-    if existing:
+    with _session_lock:
+        conn = _get_connection()
         conn.execute(
-            "UPDATE sessions SET last_seen_at = ? WHERE session_id = ?",
-            [_now(), session_key],
-        )
-    else:
-        conn.execute(
-            "INSERT INTO sessions (session_id, started_at, last_seen_at, hostname, pid) "
+            "INSERT OR IGNORE INTO sessions (session_id, started_at, last_seen_at, hostname, pid) "
             "VALUES (?, ?, ?, ?, ?)",
             [session_key, _now(), _now(), hostname, os.getpid()],
         )
-    conn.commit()
+        conn.execute(
+            "UPDATE sessions SET last_seen_at = ?, pid = ? WHERE session_id = ?",
+            [_now(), os.getpid(), session_key],
+        )
+        conn.commit()
     return session_key
 
 
