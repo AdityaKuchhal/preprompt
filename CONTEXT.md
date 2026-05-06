@@ -48,7 +48,14 @@ cli/
                    feedback (accept/reject rating), install (one-command setup),
                    update, update-context
                    stats_cmd/history_cmd call maybe_run_setup() on first run
-  setup.py       — first-run API key wizard (maybe_run_setup())
+                   install_cmd/update_cmd use cli._register.register_hooks() — no file-path subprocess
+  setup.py       — first-run API key wizard (maybe_run_setup()); after key saved, calls register_hooks()
+  hook.py        — pip-installable hook (run as: python -m cli.hook)
+                   loads API key from ~/.preprompt/.env, no sys.path manipulation
+                   identical logic to .claude/hooks/pre_prompt.py
+  _register.py   — register_hooks(api_key): writes MCP + UserPromptSubmit to ~/.claude/settings.json
+                   uses sys.executable -m mcp_server.server and sys.executable -m cli.hook
+                   called by install_cmd, update_cmd, maybe_run_setup
   watch.py       — preprompt-watch: auto-flushes sidecars on startup, live tail of ~/.preprompt/activity.log
 
 .claude/
@@ -108,6 +115,7 @@ tests/
 - Phase 9: accept/reject tracking, preprompt-feedback CLI, preprompt-install one-command setup, cross-platform clipboard, faster memory (0.85/+0.03), first-run API key wizard, Beehiiv beta signup wired
 - Phase 9b: landing page upgrades — social proof strip, FAQ accordion, preprompt-install leads install section, v0.1.3 throughout, mobile ASCII box fixed (CSS card on mobile, full ASCII on desktop), beta signup matches paper/amber design
 - Phase 9c: fix get_or_create_session() UNIQUE constraint race — INSERT OR IGNORE + threading.Lock, safe against concurrent Cursor MCP server processes
+- Phase 9d: pip-installable hook + registration — cli/hook.py (python -m cli.hook), cli/_register.py (register_hooks()), setup_global_hook.py uses module paths, no __file__-relative paths for installed users
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database

@@ -57,9 +57,7 @@ def maybe_run_setup() -> None:
 
     if not key:
         print()
-        print("  Skipped. Add your key later:")
-        env_path = _get_env_path()
-        print(f"  echo 'ANTHROPIC_API_KEY=sk-ant-...' >> {env_path}")
+        print("  Setup incomplete. Run preprompt-install to complete when ready.")
         print()
         return
 
@@ -78,9 +76,15 @@ def maybe_run_setup() -> None:
         ]
         env_path.write_text("\n".join(lines) + "\n")
 
+    os.environ["ANTHROPIC_API_KEY"] = key
+
     print()
     print("  ✓ API key saved to ~/.preprompt/.env")
-    print()
-    print("  PrePrompt is ready. Run preprompt-install to register")
-    print("  hooks in Claude Code and Cursor.")
+
+    try:
+        from cli._register import register_hooks
+        register_hooks(key)
+        print("  ✓ Claude Code hook registered")
+    except Exception:
+        print("  Run preprompt-install to register hooks in Claude Code and Cursor.")
     print()

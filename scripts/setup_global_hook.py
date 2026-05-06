@@ -1,75 +1,33 @@
 #!/usr/bin/env python3
 """
 Register PrePrompt as a global Claude Code MCP server + UserPromptSubmit hook.
-
 Safe to run multiple times — always overwrites, never duplicates.
+Uses module-based invocation: works for pip-installed users with no cloned repo.
 """
 
-import json
 import sys
+import os
 from pathlib import Path
 
-# Resolve project root from this file's location (scripts/ -> project root)
-_PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-_HOOK_PATH = _PROJECT_ROOT / ".claude" / "hooks" / "pre_prompt.py"
 _SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 
-# Load API key from .env if present
+# Load API key from ~/.preprompt/.env (not project root)
 try:
     from dotenv import load_dotenv
-    load_dotenv(_PROJECT_ROOT / ".env")
+    load_dotenv(Path.home() / ".preprompt" / ".env")
 except ImportError:
     pass
 
-import os
-_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-
-
-def _load_settings() -> dict:
-    if _SETTINGS_PATH.exists():
-        try:
-            return json.loads(_SETTINGS_PATH.read_text())
-        except Exception:
-            return {}
-    return {}
-
-
-def _save_settings(settings: dict) -> None:
-    _SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _SETTINGS_PATH.write_text(json.dumps(settings, indent=2) + "\n")
-
 
 def main() -> None:
-    settings = _load_settings()
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
-    # ── MCP server entry ──────────────────────────────────────────────────────
-    settings.setdefault("mcpServers", {})
-    settings["mcpServers"]["preprompt"] = {
-        "command": "python",
-        "args": ["-m", "mcp_server.server"],
-        "cwd": str(_PROJECT_ROOT),
-        "env": {"ANTHROPIC_API_KEY": _API_KEY},
-    }
-
-    # ── UserPromptSubmit hook entry ───────────────────────────────────────────
-    settings.setdefault("hooks", {})
-    settings["hooks"]["UserPromptSubmit"] = [
-        {
-            "matcher": "",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": f"python3 {_HOOK_PATH}",
-                }
-            ],
-        }
-    ]
-
-    _save_settings(settings)
+    from cli._register import register_hooks
+    register_hooks(api_key)
 
     print("✓ Claude Code global hook registered")
-    print(f"  Hook: {_HOOK_PATH}")
-    print(f"  MCP:  {_PROJECT_ROOT}")
+    print(f"  Hook:  {sys.executable} -m cli.hook")
+    print(f"  MCP:   {sys.executable} -m mcp_server.server")
 
     # ── Cursor global rules ───────────────────────────────────────────────────
     cursor_rules_dir = Path.home() / ".cursor" / "rules"
@@ -102,7 +60,6 @@ If the tool fails, proceed with the original prompt silently.
     old_db = Path.home() / ".preprompt" / "history.db"
     if old_db.exists():
         try:
-            # Quick check: SQLite files start with "SQLite format 3"
             with open(old_db, "rb") as f:
                 header = f.read(16)
             if not header.startswith(b"SQLite format 3"):

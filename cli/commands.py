@@ -501,20 +501,18 @@ def install_cmd() -> None:
 
     print()
 
+    # Load API key into current process env before registration
+    if api_key:
+        os.environ["ANTHROPIC_API_KEY"] = api_key
+
     # Step 2: Register Claude Code global hook
     print("  Step 2/3 — Registering Claude Code hook...")
-    hook_script = Path(__file__).resolve().parent.parent / "scripts" / "setup_global_hook.py"
-    if hook_script.exists():
-        result = subprocess.run(
-            [sys.executable, str(hook_script)],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0:
-            print("  ✓ Claude Code hook registered")
-        else:
-            print(f"  ⚠ Hook registration failed: {result.stderr[:100]}")
-    else:
-        print("  ⚠ Run manually: python scripts/setup_global_hook.py")
+    try:
+        from cli._register import register_hooks
+        register_hooks(api_key)
+        print("  ✓ Claude Code hook registered")
+    except Exception as e:
+        print(f"  ⚠ Hook registration failed: {e}")
 
     print()
 
@@ -533,7 +531,13 @@ def install_cmd() -> None:
             else:
                 print(f"  ⚠ Cursor registration failed")
         else:
-            print("  ⚠ Run manually: python scripts/install_cursor.py")
+            # pip-installed: run the Cursor registration inline
+            try:
+                from scripts.install_cursor import main as _cursor_main
+                _cursor_main()
+                print("  ✓ Cursor MCP registered")
+            except Exception:
+                print("  ⚠ Run manually: python scripts/install_cursor.py")
     else:
         print("  Cursor not found — skipping")
 
@@ -587,17 +591,12 @@ def update_cmd() -> None:
     print()
     print(f"  Re-registering hooks...")
 
-    import importlib.util
-    from pathlib import Path
-    spec = importlib.util.find_spec("mcp_server")
-    if spec:
-        project_root = Path(spec.origin).parent.parent
-        hook_script = project_root / "scripts" / "setup_global_hook.py"
-        if hook_script.exists():
-            subprocess.run([sys.executable, str(hook_script)])
-            print(f"  Hooks re-registered")
-        else:
-            print(f"  ⚠ Run manually: python scripts/setup_global_hook.py")
+    try:
+        from cli._register import register_hooks
+        register_hooks()
+        print(f"  Hooks re-registered")
+    except Exception as e:
+        print(f"  ⚠ Hook re-registration failed: {e}")
     print()
     print(f"  Restart Claude Code and Cursor to activate {latest}")
 

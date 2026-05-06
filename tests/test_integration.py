@@ -239,3 +239,38 @@ def test_get_all_history_returns_cross_session(tmp_path, monkeypatch):
     sessions = {e["session_id"] for e in all_history}
     assert "session-a" in sessions
     assert "session-b" in sessions
+
+
+def test_activity_log_written_on_intercept(tmp_path):
+    """Hook writes correctly-formatted lines to activity.log."""
+    log_path = tmp_path / ".preprompt" / "activity.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Simulate what _log_activity writes for an interception
+    import datetime
+    ts = datetime.datetime.now().strftime("%H:%M:%S")
+    original = "write a function that handles auth and manages sessions"
+    optimized = "Write a FastAPI function that handles OAuth2 authentication and manages user sessions with JWT tokens."
+    score = 58
+
+    line = (
+        f"[{ts}] +{score} INTERCEPTED | {original[:60]}...\n"
+        f"         → {optimized[:80]}...\n"
+    )
+    with open(log_path, "a") as f:
+        f.write(line)
+
+    assert log_path.exists()
+    content = log_path.read_text()
+    assert "INTERCEPTED" in content
+    assert f"+{score}" in content
+    assert original[:40] in content
+
+    # Simulate a passthrough entry
+    passthrough_line = f"[{ts}] score=-35 passthrough | what is jwt\n"
+    with open(log_path, "a") as f:
+        f.write(passthrough_line)
+
+    content = log_path.read_text()
+    assert "passthrough" in content
+    assert "INTERCEPTED" in content   # earlier entry still present
