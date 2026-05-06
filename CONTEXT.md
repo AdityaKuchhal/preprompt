@@ -3,7 +3,7 @@
 # This file is auto-maintained. Read it fully at the start of every chat.
 
 ## Build status
-Phase 8 complete. 29/29 tests passing.
+Phase 9b complete. 29/29 tests passing.
 
 ## What PrePrompt does
 MCP server that intercepts prompts in Claude Code and Cursor, scores them
@@ -102,9 +102,9 @@ tests/
 - Phase 7c: preprompt.skill.md — Claude Skill for tools without MCP support
 - Phase 8: activity.log in hook, preprompt-watch live feed, preprompt-clip clipboard optimizer, session summary on server shutdown
 - Phase 8b: flush sidecars runs memory extraction (Claude Code → stack memory), watch auto-flushes on startup
-- Phase 8c: preprompt-update command, version check on stats/history startup, version in stats header
-- Phase 9: accept/reject feedback tracking, preprompt-install one-command setup, preprompt-feedback CLI, cross-platform clipboard, faster memory (0.85/0.03), landing page prerequisites block
-- Phase 9b: Beehiiv beta signup on landing, first-run API key wizard (cli/setup.py), fix version comparison (tuple sort not string eq)
+- Phase 8c: preprompt-update command, version check on stats/history, version in stats header
+- Phase 9: accept/reject tracking, preprompt-feedback CLI, preprompt-install one-command setup, cross-platform clipboard, faster memory (0.85/+0.03), first-run API key wizard, Beehiiv beta signup wired
+- Phase 9b: landing page upgrades — social proof strip, FAQ accordion, preprompt-install leads install section, v0.1.2 throughout, mobile ASCII box fixed (CSS card on mobile, full ASCII on desktop), beta signup matches paper/amber design
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database
@@ -116,15 +116,17 @@ tests/
 2. Go to https://pypi.org/manage/account/publishing/
 3. Add trusted publisher: owner=yashdeeptehlan, repo=preprompt, workflow=publish.yml, env=release
 4. Create GitHub environment "release" at https://github.com/yashdeeptehlan/preprompt/settings/environments
-5. Tag a release: git tag v0.1.1 && git push origin v0.1.1
+5. Tag a release: git tag v0.1.X && git push origin v0.1.X
 
 ## Next phases
-- Phase 8: web dashboard (local FastAPI + HTMX) to browse history and replay sessions
-- Phase 8b: prompt diff view (original vs optimized, side by side)
+- Phase 10: web dashboard — local FastAPI server showing live interception feed, before/after diffs, memory confidence scores, cost savings tracker
+- Phase 10b: project profiles — separate memory per repo/project
+- Phase 10c: clarify mode — ask questions instead of rewriting when intent is ambiguous
+- Phase 11: VS Code extension for broader distribution
 
 ## GitHub Pages
-Landing page: https://yashdeeptehlan.github.io/preprompt/
-Source: docs/index.html (Tailwind CDN, JetBrains Mono, interactive demo, session replay, FAQ)
+Landing page: https://preprompt.org
+Source: docs/index.html (React JSX via Babel standalone, JetBrains Mono + Inter Tight, paper/amber design system, sections: Nav, Hero, SocialProof, BeforeAfter, HowItWorks, ClassifierTable, StackMemory, Architecture, Cost, Install, FAQ, Beta, Footer)
 
 ## How new chats should start
 User will say "continuing from last chat" or paste this file.
@@ -136,3 +138,25 @@ Confirm phase + what comes next, then proceed.
 - API key: in .env as ANTHROPIC_API_KEY
 - Claude Code workspace: /Users/user/Documents/Promptforge/promptforge
 - GitHub: https://github.com/yashdeeptehlan/preprompt
+
+## Current version
+v0.1.2 — live on PyPI at https://pypi.org/project/preprompt/
+
+## Distribution
+- PyPI: pip install preprompt
+- GitHub: github.com/yashdeeptehlan/preprompt (public, MIT, 10 stars)
+- Landing page: preprompt.org
+- Email list: preprompt.beehiiv.com/subscribe
+
+## Known limitations
+- Cursor only works in Agent mode — Ask/Plan modes skip MCP tools entirely
+- preprompt-watch stats show total=0 when MCP server holds write lock
+- Stack memory builds slowly for brand new users (by design — confidence compounds)
+- Claude Code hook fires globally across all projects on the machine
+
+## Strategic context
+The real opportunity is becoming an AI instruction reliability layer —
+checking human intent before it reaches powerful AI agents. Current moat:
+cross-tool portability, local-first privacy, user-owned memory, open source.
+Not yet VC-ready — need 500+ active installs with retention data first.
+Focus: grow individual users, collect accept/reject data proving retry reduction.
