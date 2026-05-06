@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="preprompt-logo-mark.png">
+  <link rel="icon" type="image/png" href="./preprompt-logo-mark.png">
 
   <style>
 /* Preprompt landing — styles
@@ -273,6 +273,8 @@ body::before {
   margin: 0;
   padding: 22px 24px;
   white-space: pre;
+  font-variant-ligatures: none;
+  tab-size: 1;
   overflow-x: auto;
   display: block;
   width: fit-content;
@@ -1148,7 +1150,7 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
     function Nav() {
       return (
         <nav className="nav">
-          <img src="preprompt-logo-lockup.png" alt="PrePrompt" style={{height: "32px"}} />
+          <img src="./preprompt-logo-lockup.png" alt="PrePrompt" style={{height: "28px", width: "auto", display: "block"}} />
           <div className="nav-links">
             <a href="#how">how it works</a>
             <a href="#classifier">classifier</a>
@@ -1171,18 +1173,16 @@ section { padding: var(--pad-y) var(--shell-x); max-width: var(--maxw); margin: 
             <span className="cd" /><span className="cd" /><span className="cd" />
             <span className="ascii-chrome-title">claude-code · stderr</span>
           </div>
-          <pre className="ascii-box" aria-label="terminal annotation">{`╔═ preprompt  `}<span className="ansi-yellow">+58</span>{` ═══════════════════════════════════════════╗
-║ The rewritten prompt specifies the technical              ║
-║ implementation details, clarifies the workflow, and adds  ║
-║ concrete error scenarios relevant to FastAPI apps.        ║
-╠═══════════════════════════════════════════════════════════╣
-║ `}<span className="ansi-dim">ORIGINAL</span>{`  write a function that handles youtube oauth t… ║
-║ `}<span className="ansi-yellow">OPTIMIZED</span>{` Write a Python function for FastAPI that       ║
-║           handles YouTube OAuth 2.0 token refresh. The    ║
-║           function should: (1) detect expired credentials ║
-║           by checking the expiry timestamp, (2) use the   ║
-║           refresh token to obtain a new access token…     ║
-╚═══════════════════════════════════════════════════════════╝`}</pre>
+          <pre className="ascii-box" aria-label="terminal annotation">
+{`╔═ preprompt  `}<span className="ansi-yellow">+58</span>{` ═══════════════════════════════════════════╗
+║ The rewritten prompt specifies the technical               ║
+║ implementation details, clarifies the workflow, and adds   ║
+║ concrete error scenarios relevant to FastAPI apps.         ║
+╠════════════════════════════════════════════════════════════╣
+║ `}<span className="ansi-dim">ORIGINAL</span>{`  write a function that handles youtube oauth t…   ║
+║ `}<span className="ansi-yellow">OPTIMIZED</span>{` Write a Python function for FastAPI that         ║
+║           handles══════════════════════════════════════════════╝`}
+</pre>
           <div className="ascii-mobile">
             <div className="ascii-mobile-header">
               preprompt <span className="ascii-mobile-score">+58</span>
