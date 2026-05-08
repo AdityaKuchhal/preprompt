@@ -30,3 +30,8 @@ htmlcov/
 # PrePrompt runtime DB lives outside the repo:
 # ~/.preprompt/history.db  ← not tracked
 .venv/
+
+
+# MD Files
+CLAUDE.md
+CONTEXT.md
