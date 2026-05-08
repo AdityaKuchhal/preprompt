@@ -1,9 +1,9 @@
-<!-- Last updated: 2026-04-29 23:18 -->
+<!-- Last updated: 2026-05-08 -->
 # PrePrompt — CONTEXT.md
 # This file is auto-maintained. Read it fully at the start of every chat.
 
 ## Build status
-Phase 9b complete. 29/29 tests passing.
+Phase 9f complete. 29/29 tests passing.
 
 ## What PrePrompt does
 MCP server that intercepts prompts in Claude Code and Cursor, scores them
@@ -117,6 +117,7 @@ tests/
 - Phase 9c: fix get_or_create_session() UNIQUE constraint race — INSERT OR IGNORE + threading.Lock, safe against concurrent Cursor MCP server processes
 - Phase 9d: pip-installable hook + registration — cli/hook.py (python -m cli.hook), cli/_register.py (register_hooks()), setup_global_hook.py uses module paths, no __file__-relative paths for installed users
 - Phase 9e: maybe_run_setup() wired into all CLI commands (not install_cmd); register_hooks() detects Claude Code + Cursor before writing settings; success message on first-run wizard completion
+- Phase 9f: landing page logo + favicon — preprompt-logo-lockup.png in navbar, preprompt-logo-mark.png as favicon (./relative paths for GitHub Pages), ASCII box restored with correct 62-char alignment and proper ╚════╝ footer, font-variant-ligatures:none + tab-size:1 added to .ascii-box CSS
 
 ## Runtime files
 - ~/.preprompt/history.db     — SQLite WAL database
@@ -139,6 +140,10 @@ tests/
 ## GitHub Pages
 Landing page: https://preprompt.org
 Source: docs/index.html (React JSX via Babel standalone, JetBrains Mono + Inter Tight, paper/amber design system, sections: Nav, Hero, SocialProof, BeforeAfter, HowItWorks, ClassifierTable, StackMemory, Architecture, Cost, Install, FAQ, Beta, Footer)
+Logo assets in docs/ (served as GitHub Pages root):
+  preprompt-logo-lockup.png     — horizontal lockup used in navbar (height:28px)
+  preprompt-logo-mark.png       — icon on dark bg, used as favicon
+  preprompt-logo-mark-paper.png — icon on paper bg (spare)
 
 ## How new chats should start
 User will say "continuing from last chat" or paste this file.
